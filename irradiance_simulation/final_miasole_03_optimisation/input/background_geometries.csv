@@ -1,0 +1,4 @@
+name,mat_name,mat_type,mat_nr,mat_value_R,mat_value_G,mat_value_B,specularity,roughness
+backbone1,0_1,plastic,5,0.5,0.5,0.5,0,0
+backbone2,0_2,plastic,5,0.5,0.5,0.5,0,0
+hilo_roof,0_3,plastic,5,0.5,0.5,0.5,0,0
