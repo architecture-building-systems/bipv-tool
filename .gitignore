@@ -105,6 +105,7 @@ ENV/
 irradiance_simulation/final_miasole_03_optimisation/output/
 irradiance_simulation/final_miasole_03_optimisation/results/
 string_optimisation/data/
+electrical_simulation/data/
 
 
 
