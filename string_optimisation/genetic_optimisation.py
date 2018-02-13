@@ -142,9 +142,9 @@ def main(plot_obj, cxpb=0.9, mutpb=0.5, number_of_strings=None):
                 plt.ylabel("Output [kWh]")
                 plt.xlabel("Generations [n]")
                 plt.title("Evolution with cxpb = %s and mutpb = %s" %(cxpb,mutpb))
-                plt.ylim(7200,8500)
+                plt.ylim(7100,8700)
                 plt.savefig(r"C:\Users\walkerl\Desktop\temp_stuff\Images\history%s" % str(generation)+str(int(100*cxpb)) +str(int(100*mutpb)))
-                # plt.show()
+                plt.show()
                 # plt.pause(0.001)
 
         # visualize_result
