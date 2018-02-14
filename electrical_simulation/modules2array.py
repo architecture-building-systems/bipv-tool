@@ -100,11 +100,19 @@ def calculate_yield(mpp_series, timestep=1, hoy_from=0, hoy_to=8759):
 
 
 def calculate_losses(impp_series, cable_length, cable_cross_section=4, hoy_from=0, hoy_to=8759):
+    """
+    Calculation of ohmic losses based on P = I^2*roh*length/area
+    :param impp_series: a series of i values
+    :param cable_length: the length of the cable over which the losses are calculated
+    :param cable_cross_section: the cross section area of the cable
+    :param hoy_from: hour of year to start 
+    :param hoy_to: hour of year to end 
+    :return: dc_losses (float64)
+    """
     specific_resistance = 0.017  # Ohm/mm2/m (Copper)
     losses = np.empty(len(impp_series))
     for timestep in range(len(impp_series)):
         losses[timestep] = specific_resistance * cable_length * cable_cross_section * impp_series[timestep] ** 2
-
     dc_losses = np.sum(losses[hoy_from:hoy_to+1])
     return dc_losses
 
@@ -200,30 +208,10 @@ def calculate_mpp(iv_data):
     return mpp_total, i_mpp_total, v_mpp_total
 
 
-def series_parallel(string_arrangement, module_iv_folder, recalculate=False, hoy_from=0, hoy_to=8759):
-    if recalculate == True:
-        modules2strings(string_arrangement, module_iv_folder)
-    strings2array(string_arrangement, module_iv_folder)
-    return calculate_yield(calculate_mpp(strings2array(string_arrangement, module_iv_folder))[0], hoy_from=hoy_from,
-                           hoy_to=hoy_to)
-
-
-# def series_parallel_with_dc_losses(string_arrangement, module_iv_folder, cable_length, recalculate=False,
-#                                    cable_cross_section=4, hoy_from=0, hoy_to=8759):
-#     if recalculate == True:
-#         modules2strings(string_arrangement, module_iv_folder)
-#     array_iv = strings2array(string_arrangement, module_iv_folder)
-#     mpp, impp, vmpp = calculate_mpp(array_iv)
-#     energy_yield = calculate_yield(mpp, hoy_from=hoy_from, hoy_to=hoy_to)
-#     dc_losses = calculate_losses(impp, cable_length, cable_cross_section=cable_cross_section, hoy_from=hoy_from,
-#                                  hoy_to=hoy_to)
-#
-#     return energy_yield, dc_losses
-
 
 def series_parallel_with_dc_losses(modules_in_strings, strings_in_parallel , module_iv_folder, string_cable_lengths,
-                                   parallel_cable_lengths, recalculate=False, cable_cross_section = 4, hoy_from=0,
-                                   hoy_to=8759):
+                                   parallel_cable_lengths, recalculate=False, cable_cross_section = 4,
+                                   parallel_bus_cross_section=4, hoy_from=0, hoy_to=8759):
     """
     This function connects IV-curves of modules to IV curves of a series parallel arrays. Modules are connected to 
     strings, then strings are connected in parallel. In case of several parallel connections each leading to an 
@@ -252,6 +240,7 @@ def series_parallel_with_dc_losses(modules_in_strings, strings_in_parallel , mod
         modules2strings(modules_in_strings, module_iv_folder)
 
     parallel_connection_loss = []
+    parallel_connection_yield = []
     #  e.g. strings_in_parallel = [[0,1,2],[3,4,5]]
     #  e.g. parallel_connection = [0,1,2]
     sub_system_counter = 0
@@ -271,17 +260,14 @@ def series_parallel_with_dc_losses(modules_in_strings, strings_in_parallel , mod
             string_loss.append(calculate_losses(i_values, string_cable_lengths[string], cable_cross_section,
                                                 hoy_from, hoy_to))
 
-
         dc_loss_in_parallel_cable = calculate_losses(impp, parallel_cable_lengths[sub_system_counter],
-                                                     cable_cross_section, hoy_from, hoy_to)
+                                                     parallel_bus_cross_section, hoy_from, hoy_to)
 
         parallel_connection_loss.append(sum(string_loss)+dc_loss_in_parallel_cable)
-
+        parallel_connection_yield.append(calculate_yield(mpp, hoy_from=hoy_from, hoy_to=hoy_to))
 
     dc_losses = sum(parallel_connection_loss)
-        #vmpp of the parallel connected system is the voltage at which all the strings are operated
-
-    energy_yield = calculate_yield(mpp, hoy_from=hoy_from, hoy_to=hoy_to)
+    energy_yield = sum(parallel_connection_yield)
 
     return energy_yield, dc_losses
 
@@ -435,7 +421,7 @@ if __name__ == '__main__':
 
     connected_strings = [[0,1,2,3,4],[5,6,7,8,9]]
     cable_lengths = [24.26966766, 35.80156587, 21.5220064, 16.25342756, 43.74859659, 23.09968771, 20.14244473, 23.02407104, 36.1392263, 21.12497824]
-    parallel_cable_lengths = [10,10]
+    parallel_cable_lengths = [0,0]
     # string_arrangement = np.array([74])
 
     # string_arrangement = np.arange(0,75)
@@ -445,13 +431,12 @@ if __name__ == '__main__':
     #                       hoy_from=0, hoy_to=8759)
     #
     # print string_inverter_with_dc_losses(string_arrangement=string_arrangement,  module_iv_folder=module_iv_folder,
-    #                                      recalculate=True, cable_lengths=cable_lengths, hoy_from=0, hoy_to=8759)
-
-    # print series_parallel(string_arrangement, module_iv_folder, recalculate=True, hoy_from=0, hoy_to=8759)
+    #                                      recalculate=False, cable_lengths=cable_lengths, hoy_from=0, hoy_to=8759)
+    #
     print series_parallel_with_dc_losses(string_arrangement, strings_in_parallel=connected_strings,
                                          module_iv_folder=module_iv_folder, string_cable_lengths=cable_lengths,
-                                         parallel_cable_lengths=parallel_cable_lengths,  recalculate=False, hoy_from=0,
-                                         hoy_to=8759)
+                                         parallel_cable_lengths=parallel_cable_lengths, parallel_bus_cross_section=10,
+                                         recalculate=False, hoy_from=0, hoy_to=8759)
 
 
     # print total_crosstied(string_arrangement, module_iv_folder, recalculate=True, hoy_from=0, hoy_to=8759)
