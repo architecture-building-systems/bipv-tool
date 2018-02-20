@@ -145,73 +145,73 @@ def create_adjacency_matrix(module_center_points, distance_threshold):
 
 
 
-
-class Result_Plot(object):
-    "The class Result_Plot is used, so that plots can be updated faster"
-
-    def __init__(self, module_centers, string_arrangement):
-        self.module_centers = module_centers
-        self.string_arrangement = string_arrangement
-        self.generation_history = []
-        self.cabling_history = []
-        self.data = None
-
-    def add_to_gen_history(self, new_value):
-        self.generation_history.append(new_value)
-
-    def add_to_cabling_history(self, new_value):
-        self.cabling_history.append(new_value)
-
-    def plot(self,filename=None, save_mode=False, save_csv=False):
-        # plt.ion()
-        plt.clf()
-        cmap = plt.get_cmap('tab20')
-        colors = [cmap(i) for i in np.linspace(0, 1, len(self.string_arrangement))]
-        axes_a = plt.gca()
-        axes_a.set_xlim(118,136)
-        axes_a.set_ylim(-18,-3)
-        axes_a.set_title("Generation")
-        color_nr = 0
-        color_list = np.empty(len(self.module_centers))
-        for string in self.string_arrangement:
-            for module in string:
-                axes_a.add_patch(Rectangle((self.module_centers[module][0], self.module_centers[module][1]), 1.6, 0.3, angle=70, facecolor=colors[color_nr]))
-            color_nr+=1
-
-            # plt.pause(0.0001)
-        if save_mode==True:
-            plt.savefig(r"C:\Users\walkerl\Desktop\temp_stuff\Images\%s.png" % str(filename))
-        if save_csv == True:
-            display_color = np.empty(len(self.module_centers))
-            string_count = 0
-            for string in self.string_arrangement:
-                display_color[string] = string_count
-                string_count += 1
-
-            colors_df = pd.DataFrame(display_color, columns=["colour"])
-            colors_df.to_csv(r"C:\Users\walkerl\Desktop\temp_stuff\Images\data.csv", index=False)
-
-
-        # plot2 = plt.plot(self.generation_history)
-
-    def data_plot(self, hour_from, hour_to):
-        cmap = plt.get_cmap('gnuplot')
-        data_max = self.data[hour_from:hour_to,:].sum(axis=0).max()
-        data_min = self.data[hour_from:hour_to,:].sum(axis=0).min()
-        print data_min
-        print data_max
-        axes_a = plt.gca()
-        axes_a.set_ylim(-18, -3)
-        axes_a.set_xlim(118, 136)
-        axes_a.set_title("Irradiance")
-
-        # print self.data[hour_from:hour_to,:]
-        for module in range(len(self.module_centers)):
-            # print module
-            # print self.data[hour_from:hour_to, module].sum()
-            # print self.data[hour_from:hour_to, module]
-            # print (self.data[hour_from:hour_to,module].sum()-data_min)/(data_max-data_min)
-            axes_a.add_patch(Rectangle((self.module_centers[module][0], self.module_centers[module][1]), 1.6, 0.3, angle=70, facecolor=cmap((self.data[hour_from:hour_to,module].sum()-data_min)/(data_max-data_min))))
-        # plt.show()
-        plt.savefig(r"C:\Users\walkerl\Desktop\temp_stuff\Images\irradiation.png")
+#
+# class Result_Plot(object):
+#     "The class Result_Plot is used, so that plots can be updated faster"
+#
+#     def __init__(self, module_centers, string_arrangement):
+#         self.module_centers = module_centers
+#         self.string_arrangement = string_arrangement
+#         self.generation_history = []
+#         self.cabling_history = []
+#         self.data = None
+#
+#     def add_to_gen_history(self, new_value):
+#         self.generation_history.append(new_value)
+#
+#     def add_to_cabling_history(self, new_value):
+#         self.cabling_history.append(new_value)
+#
+#     def plot(self,filename=None, save_mode=False, save_csv=False):
+#         # plt.ion()
+#         plt.clf()
+#         cmap = plt.get_cmap('tab20')
+#         colors = [cmap(i) for i in np.linspace(0, 1, len(self.string_arrangement))]
+#         axes_a = plt.gca()
+#         axes_a.set_xlim(118,136)
+#         axes_a.set_ylim(-18,-3)
+#         axes_a.set_title("Generation")
+#         color_nr = 0
+#         color_list = np.empty(len(self.module_centers))
+#         for string in self.string_arrangement:
+#             for module in string:
+#                 axes_a.add_patch(Rectangle((self.module_centers[module][0], self.module_centers[module][1]), 1.6, 0.3, angle=70, facecolor=colors[color_nr]))
+#             color_nr+=1
+#
+#             # plt.pause(0.0001)
+#         if save_mode==True:
+#             plt.savefig(r"C:\Users\walkerl\Desktop\temp_stuff\Images\%s.png" % str(filename))
+#         if save_csv == True:
+#             display_color = np.empty(len(self.module_centers))
+#             string_count = 0
+#             for string in self.string_arrangement:
+#                 display_color[string] = string_count
+#                 string_count += 1
+#
+#             colors_df = pd.DataFrame(display_color, columns=["colour"])
+#             colors_df.to_csv(r"C:\Users\walkerl\Desktop\temp_stuff\Images\data.csv", index=False)
+#
+#
+#         # plot2 = plt.plot(self.generation_history)
+#
+#     def data_plot(self, hour_from, hour_to):
+#         cmap = plt.get_cmap('gnuplot')
+#         data_max = self.data[hour_from:hour_to,:].sum(axis=0).max()
+#         data_min = self.data[hour_from:hour_to,:].sum(axis=0).min()
+#         print data_min
+#         print data_max
+#         axes_a = plt.gca()
+#         axes_a.set_ylim(-18, -3)
+#         axes_a.set_xlim(118, 136)
+#         axes_a.set_title("Irradiance")
+#
+#         # print self.data[hour_from:hour_to,:]
+#         for module in range(len(self.module_centers)):
+#             # print module
+#             # print self.data[hour_from:hour_to, module].sum()
+#             # print self.data[hour_from:hour_to, module]
+#             # print (self.data[hour_from:hour_to,module].sum()-data_min)/(data_max-data_min)
+#             axes_a.add_patch(Rectangle((self.module_centers[module][0], self.module_centers[module][1]), 1.6, 0.3, angle=70, facecolor=cmap((self.data[hour_from:hour_to,module].sum()-data_min)/(data_max-data_min))))
+#         # plt.show()
+#         plt.savefig(r"C:\Users\walkerl\Desktop\temp_stuff\Images\irradiation.png")
 

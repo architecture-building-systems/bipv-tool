@@ -44,7 +44,7 @@ def evaluation_function(individual, amodule_irradiation_np, amodule_area, amodul
 
 
 
-def main(plot_obj, cxpb=0.9, mutpb=0.5, number_of_strings=None):
+def main(cxpb=0.9, mutpb=0.5, number_of_strings=None):
 
     random.seed(64)
     CXPB = cxpb
@@ -99,18 +99,11 @@ def main(plot_obj, cxpb=0.9, mutpb=0.5, number_of_strings=None):
         if generation%1==0:
             # Gather all the fitnesses in one list and print the stats
             generation_fits = [ind.fitness.values[0] for ind in pop]
-            # cabling_fits = [ind.fitness.values[1] for ind in pop]
 
             length = len(pop)
             generation_mean = sum(generation_fits) / length
-            # cabling_mean = sum(cabling_fits)/length
             generation_max = max(generation_fits)
-            # generation_min = min(generation_fits)
-            # cabling_min = min(cabling_fits)
             generation_history.append(generation_max)
-            # cabling_history.append(cabling_min)
-            # sum2 = sum(x * x for x in generation_fits)
-            # std = abs(sum2 / length - generation_mean ** 2) ** 0.5
 
             # print("  Min %s and %s" % (min(generation_fits), cabling_min))
             # print("  Max %s and %s" % (generation_max, max(cabling_fits)))
@@ -127,12 +120,9 @@ def main(plot_obj, cxpb=0.9, mutpb=0.5, number_of_strings=None):
             # plot_obj.plot(filename="distance" + str(generation),save_mode=False)
 
             if generation==1000:
-                layout = plt.figure(1)
-                plot_obj.string_arrangement = aux.decoding(pop[generation_fits.index(max(generation_fits))],number_of_strings)#.tolist()
-                plot_obj.plot(filename="layout" + str(int(100*cxpb)) + str(int(100*mutpb)), save_mode=True, save_csv=True)
+                print max(generation_fits)
+                print pop[generation_fits.index(max(generation_fits))]
 
-
-            # plt.ion()
 
 
             if generation==1000:
@@ -141,8 +131,8 @@ def main(plot_obj, cxpb=0.9, mutpb=0.5, number_of_strings=None):
                 plt.plot(generation_history)
                 plt.ylabel("Output [kWh]")
                 plt.xlabel("Generations [n]")
-                plt.title("Evolution with cxpb = %s and mutpb = %s" %(cxpb,mutpb))
-                plt.ylim(7100,8700)
+                plt.title("Evolution with cxpb = %s and mutpb = %s" %(cxpb, mutpb))
+                # plt.ylim(7100,8700)
                 plt.savefig(r"C:\Users\walkerl\Desktop\temp_stuff\Images\history%s" % str(generation)+str(int(100*cxpb)) +str(int(100*mutpb)))
                 plt.show()
                 # plt.pause(0.001)
@@ -164,7 +154,7 @@ if __name__ == "__main__":
 
 
     # Definitions of numbers
-    maximum_string_number = 10
+    maximum_string_number = 2
     # string_length = 8
     module_area = 0.90  # m2
     sensor_points_per_module = 40
@@ -208,12 +198,12 @@ if __name__ == "__main__":
 
 
     # initialising plot object for live plot of GA results
-    visual = aux.Result_Plot(module_center_points_np, None)
+    # visual = aux.Result_Plot(module_center_points_np, None)
 
     # plotting of irradiance data in the chosen timeframe
-    irradiance_plot = aux.Result_Plot(module_center_points_np, None)
-    irradiance_plot.data = module_irradiation_np
-    irradiance_plot.data_plot(hour_from=hoy_from, hour_to=hoy_to)
+    # irradiance_plot = aux.Result_Plot(module_center_points_np, None)
+    # irradiance_plot.data = module_irradiation_np
+    # irradiance_plot.data_plot(hour_from=hoy_from, hour_to=hoy_to)
 
 
     toolbox = base.Toolbox()
@@ -250,4 +240,4 @@ if __name__ == "__main__":
     #     for mutation_pb in mutpb:
     #         main(visual, cxpb=crossover_prob, mutpb=mutation_pb, number_of_strings=maximum_string_number)
     #
-    main(visual, cxpb=cxpb, mutpb=mutpb, number_of_strings=maximum_string_number)
+    main(cxpb=cxpb, mutpb=mutpb, number_of_strings=maximum_string_number)
