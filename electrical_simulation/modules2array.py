@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 import os
 import interconnection as connect
+import matplotlib.pyplot as plt
 
 
 def read_module(module_folder, module_num):
@@ -112,7 +113,12 @@ def calculate_losses(impp_series, cable_length, cable_cross_section=4, hoy_from=
     specific_resistance = 0.017  # Ohm/mm2/m (Copper)
     losses = np.empty(len(impp_series))
     for timestep in range(len(impp_series)):
-        losses[timestep] = specific_resistance * cable_length * cable_cross_section * impp_series[timestep] ** 2
+        losses[timestep] = specific_resistance * cable_length / cable_cross_section * (impp_series[timestep] ** 2)
+
+    plt.plot(losses)
+    plt.title("calculate_losses")
+    plt.show()
+
     dc_losses = np.sum(losses[hoy_from:hoy_to+1])
     return dc_losses
 
@@ -257,11 +263,15 @@ def series_parallel_with_dc_losses(modules_in_strings, strings_in_parallel , mod
         #  e.g. string = 0
             string_iv = read_string(module_iv_folder, string)
             i_values = interpolate_i_from_v(string_iv, vmpp)
+
             string_loss.append(calculate_losses(i_values, string_cable_lengths[string], cable_cross_section,
                                                 hoy_from, hoy_to))
 
         dc_loss_in_parallel_cable = calculate_losses(impp, parallel_cable_lengths[sub_system_counter],
                                                      parallel_bus_cross_section, hoy_from, hoy_to)
+        sub_system_counter+=1
+        print"sub_system_counter"
+
 
         parallel_connection_loss.append(sum(string_loss)+dc_loss_in_parallel_cable)
         parallel_connection_yield.append(calculate_yield(mpp, hoy_from=hoy_from, hoy_to=hoy_to))
@@ -403,7 +413,7 @@ if __name__ == '__main__':
     current_directory = os.path.dirname(__file__)
     # module_iv_folder = os.path.join(current_directory, 'results\standard')  # This is where the simulated IV curves are stored.
 
-    module_iv_folder = r"F:\Paper\Module-simulations\longi\unbypassed"
+    module_iv_folder = r"F:\Paper\Module-simulations\orthogonal\temp25electrical\results"
 
     # The string layout shows, how the strings are connected. Every sublist is a string.
     # For now, all strings are connected in parallel
@@ -421,7 +431,9 @@ if __name__ == '__main__':
 
     connected_strings = [[0,1,2,3,4],[5,6,7,8,9]]
     cable_lengths = [24.26966766, 35.80156587, 21.5220064, 16.25342756, 43.74859659, 23.09968771, 20.14244473, 23.02407104, 36.1392263, 21.12497824]
-    parallel_cable_lengths = [0,0]
+    parallel_cable_lengths = [14,28]
+
+    dc_main_cable_cross_section = 4
     # string_arrangement = np.array([74])
 
     # string_arrangement = np.arange(0,75)
@@ -435,8 +447,9 @@ if __name__ == '__main__':
     #
     print series_parallel_with_dc_losses(string_arrangement, strings_in_parallel=connected_strings,
                                          module_iv_folder=module_iv_folder, string_cable_lengths=cable_lengths,
-                                         parallel_cable_lengths=parallel_cable_lengths, parallel_bus_cross_section=10,
-                                         recalculate=False, hoy_from=0, hoy_to=8759)
+                                         parallel_cable_lengths=parallel_cable_lengths,
+                                         parallel_bus_cross_section=dc_main_cable_cross_section, recalculate=False,
+                                         hoy_from=0, hoy_to=8759)
 
 
     # print total_crosstied(string_arrangement, module_iv_folder, recalculate=True, hoy_from=0, hoy_to=8759)
