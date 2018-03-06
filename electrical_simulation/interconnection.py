@@ -8,6 +8,7 @@ This file contains functions that are able to interconnect IV-characteristics in
 
 def series_connect_multiple(multiple_i_values_np, multiple_v_values_np, minimum_voltage_of_return):
 
+
     for index in range(len(multiple_i_values_np)):
         multiple_i_values_np[index] = np.flipud(multiple_i_values_np[index]) # The flip is required for the interpolation
         multiple_v_values_np[index] = np.flipud(multiple_v_values_np[index])

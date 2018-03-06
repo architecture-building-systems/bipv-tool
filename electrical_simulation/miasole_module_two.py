@@ -171,8 +171,7 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_df=None
 
             substring_v_values_np = cell_v_values_np[substring*cells_per_substring:(substring+1)*cells_per_substring]
             substring_i_values_np = cell_i_values_np[substring*cells_per_substring:(substring+1)*cells_per_substring]
-            i_connected_substring, v_connected_substring = connect.series_connect_multiple(substring_i_values_np, substring_v_values_np, v_threshold)
-
+            i_connected_substring, v_connected_substring = connect.series_connect_multiple(substring_i_values_np, substring_v_values_np, v_threshold)  
             i_connected.append(i_connected_substring)
             v_connected.append(v_connected_substring)
 

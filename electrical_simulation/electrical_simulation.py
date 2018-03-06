@@ -107,7 +107,7 @@ if __name__ == '__main__':
     n_cells = 56
     bypass_diodes = 28
     module_name = 'MiaSole_Flex_03_120N'  # make sure the name is stated as in the database
-    number_of_subcells = 23
+    number_of_subcells = 4
     start_module = 13
     end_module = 14
 
