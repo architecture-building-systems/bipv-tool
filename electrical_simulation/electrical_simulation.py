@@ -108,7 +108,7 @@ if __name__ == '__main__':
     bypass_diodes = 28
     module_name = 'MiaSole_Flex_03_120N'  # make sure the name is stated as in the database
     number_of_subcells = 4
-    start_module = 13
+    start_module = 0
     end_module = 14
 
     num_irrad_per_module = n_cells * number_of_subcells
@@ -119,10 +119,17 @@ if __name__ == '__main__':
     module_temp_results = os.path.join(current_directory, 'results')
     database_path = os.path.join(current_directory, r'data\CEC_Modules.csv')
 
+######## AT THE MOMENT THIS IS NOT IN USE BECAUSE THE LOOKUP TABLE IS NOW IN NP
     # Import of data
     irradiation_complete_df = pd.read_csv(irradiation_results_path, sep=' ', header=None)
     module_lookuptable = pd.read_pickle(module_lookup_table_path)
     module_lookuptable = module_lookuptable.astype('object')
+############# Ends here
+    
+    # Temperature -25 to 49 Celsius and Irrad vrom 0 to 1199 W/m2
+    module_lookuptable = np.empty((75,1200), dtype="object")
+    module_lookuptable[:] = np.nan
+
     weatherfile = pd.read_csv(epw_path, skiprows=8, header=None)
     temperature = weatherfile[6].tolist()
 
