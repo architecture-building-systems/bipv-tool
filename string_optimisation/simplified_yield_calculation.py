@@ -47,19 +47,6 @@ def simple_yield_calculation(string_arrangement, module_irradiation_np, module_a
         array_yield += final_yield.sum()
         count_index+=1
 
-
-
-
-    # total_current = np.empty(current_of_min_module.shape)# Wieder wegnehmen
-
-    # for string_current in all_currents:# Wieder wegnehmen
-    #     total_current = np.add(total_current, string_current)# Wieder wegnehmen
-
-    # additional_losses = np.square(total_current) * roh / 40 * 10
-    # total_add_losses = additional_losses.sum()
-    # array_yield =array_yield - total_add_losses
-
-
     return array_yield
 
 
