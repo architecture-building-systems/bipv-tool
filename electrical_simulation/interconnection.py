@@ -3,6 +3,11 @@ import matplotlib.pyplot as plt
 
 """
 This file contains functions that are able to interconnect IV-characteristics in series and parallel
+
+at the moment several functions do the same on a different scale (cell or array) this shall be simplified to only two 
+functions, one for parallel and one for series.
+
+
 """
 
 
@@ -34,16 +39,12 @@ def series_connect_multiple(multiple_i_values_np, multiple_v_values_np, minimum_
     else:
         pass
 
-
     i_lin_np = np.linspace(minimum, maximum, num= int((maximum-minimum)/0.01))
-
     multiple_interp_v_values = np.empty(len(multiple_v_values_np), dtype=object)
-
 
     for index in range(len(multiple_v_values_np)):
         # Each index stands for one cell/submodule that is connected
         multiple_interp_v_values[index] = np.interp(i_lin_np, multiple_i_values_np[index], multiple_v_values_np[index])
-
     v_joined_flipped =  multiple_interp_v_values.sum(axis=0)
 
     # This last interpolation helps to distribute the datapoints also for nearly horizontal curves.
@@ -56,103 +57,6 @@ def series_connect_multiple(multiple_i_values_np, multiple_v_values_np, minimum_
 
     return i_joined, v_lin_np
 
-def series_connect_cell2substring(i1, v1, i2, v2):
-    """
-    :param i1: np array of currents that is available from the first iv-curve [A]
-    :param v1: np array of voltages that is available from the first iv-curve [V]
-    :param i2: np array of currents that is available from the second iv-curve [A]
-    :param v2: np array of voltages that is available from the second iv-curve [V]
-    :return: 2 np arrays, one of currents and one of voltages from the new iv-curve in [A] and [V]
-    """
-
-    # The values have to be flipped for the interpolation process
-    i1np = np.flipud(i1)
-    v1np = np.flipud(v1)
-    i2np = np.flipud(i2)
-    v2np = np.flipud(v2)
-
-    # This conditional statement helps to keep the values in a realistic scope and therefore minimising the
-    # calculation time. if the threshold is increased, then the num value has to be increased drastically
-
-    if max(i1np.max(), i2np.max()) <= 15:
-        i_lin_np = np.linspace( min(i1np.min(), i2np.min()),max(i1np.max(), i2np.max()),num=1000)
-
-    else:
-        i_lin_np = np.linspace(min(i1np.min(), i2np.min()), 15, num=1000)
-
-    # This interpolation is needed to bring the two curves to the same current basis where the voltages can be added.
-    v1interp = np.interp(i_lin_np, i1np, v1np,)
-    v2interp = np.interp(i_lin_np, i2np, v2np)
-
-    v3 = np.add(v1interp,v2interp)
-
-    # This last interpolation helps to distribute the datapoint also for nearly horizontal curves.
-    v3_flipped = np.flipud(v3)
-    i_lin_np_flipped = np.flipud(i_lin_np)
-    v_lin_np = np.linspace(v3.min(), v3.max(),1500)
-    i3interp = np.interp(v_lin_np, v3_flipped, i_lin_np_flipped)
-
-
-    return i3interp, v_lin_np
-
-def series_connect(i1, v1, i2, v2):
-    """
-    :param i1: np array of currents that is available from the first iv-curve [A]
-    :param v1: np array of voltages that is available from the first iv-curve [V]
-    :param i2: np array of currents that is available from the second iv-curve [A]
-    :param v2: np array of voltages that is available from the second iv-curve [V]
-    :return: 2 np arrays, one of currents and one of voltages from the new iv-curve in [A] and [V]
-    """
-
-    # The values have to be flipped for the interpolation process
-    i1np = np.flipud(i1)
-    v1np = np.flipud(v1)
-    i2np = np.flipud(i2)
-    v2np = np.flipud(v2)
-
-    i_new = np.concatenate((i1np, i2np))
-    i_new.sort(kind='quicksort')
-    i_new = np.unique(i_new)
-
-    # This interpolation is needed to bring the two curves to the same current basis where the voltages can be added.
-    v1interp = np.interp(i_new,i1np, v1np,)
-    v2interp = np.interp(i_new, i2np, v2np)
-    v3 = np.add(v1interp,v2interp)
-    v3_flipped = np.flipud(v3)
-    i3 = np.flipud(i_new)
-    i3, v3_flipped = clean_curve([i3,v3_flipped], 0.1)
-
-    return i3, v3_flipped
-
-def parallel_connect(i1, v1, i2, v2):
-    """
-    :param i1: np array of currents that is available from the first iv-curve [A]
-    :param v1: np array of voltages that is available from the first iv-curve [V]
-    :param i2: np array of currents that is available from the second iv-curve [A]
-    :param v2: np array of voltages that is available from the second iv-curve [V]
-    :return: 2 np arrays, one of currents and one of voltages from the new iv-curve in [A] and [V]
-    """
-
-    # For the parallel case, the input i-v curves do not have to be flipped, since the interpolation will be on the
-    # basis of voltage. The voltage is already ordered form low to high values.
-
-    # This conditional statement helps to keep the values in a realistic scope and therefore minimising the
-    # calculation time. if the threshold is increased, then the num value has to be increased drastically
-
-    if min(v1.min, v2.min) >= -50: #For arrays with long series connections this value is maybe too low
-        v_lin_np = np.linspace(min(v1.min(), v2.min()), max(v1.max(), v2.max()), num=1500)
-    else:
-        v_lin_np = np.linspace(-50, max(v1.max, v2.max), num=1500)
-
-    # This interpolation is needed to bring the two curves to the same voltage basis where the currents can be added.
-    i1interp = np.interp(v_lin_np, v1, i1)
-    i2interp = np.interp(v_lin_np, v2, i2)
-
-    #here the addition of the curve takes place
-    i3 = np.add(i1interp, i2interp)
-    v3 = v_lin_np
-
-    return i3, v3
 
 def series_connect_string(i1, v1, i2, v2):
     """
@@ -222,6 +126,8 @@ def parallel_connect_string(i1, v1, i2, v2):
 
     return i3, v3
 
+
+
 def clean_curve(iv_curve, tolerance):
 
     pos = 0
@@ -232,6 +138,8 @@ def clean_curve(iv_curve, tolerance):
         else:
             pos+=1
     return iv_curve
+
+
 
 def rearrange_shading_pattern_miasole(irradiation_pattern, number_of_subcells):
     # The irradiation pattern is given in a list from module left to right, up to down.

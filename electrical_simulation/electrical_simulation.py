@@ -30,13 +30,7 @@ Always take into account that in a list the value 1 will be stored at 0.
 
 def run_simulation(input_dataframe, num_cells_per_module, temperature_series, lookup_table, mod_temp_path,
                    module_start, module_end, database_path, module_name, bypass_diodes, subcells, num_irrad_per_module):
-    """
-    :param input_dataframe: irradiation on every cell/subcell
-    :param num_cells_per_module: cells_per_module 
-    :param temperature_series: 
-    :param lookup_table: 
-    :return: 
-    """
+
 
     modules_in_df = (len(input_dataframe.columns) - 4) / num_irrad_per_module
 

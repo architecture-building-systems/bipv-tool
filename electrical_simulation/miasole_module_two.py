@@ -144,6 +144,23 @@ def bypass_diodes_on_substrings(substring_i_values, substring_v_values, number_o
 def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_df=None, module_df=None,
                     module_name='MiaSole_Flex_03_120N', numcells=56, n_bypass_diodes=28, num_subcells=4,
                     vmax=50.0, v_threshold=-1, breakdown_voltage=-6.10, ):
+    """
+    This function returns the module IV curve of a module under any partial shading conditions or unequal irradiance.
+    :param irrad_on_subcells: list, list of all irradiance values on the specific module (for one specific hour) make
+                                sure that the dimensions of this list equals the number of cells or subcells that are
+                                used for the module. E.G number of cells = 56, num_subcells=4 --> list length = 274
+    :param temperature: float, Ambient temperature value for the given hour
+    :param irrad_temp_lookup_df: 
+    :param module_df: 
+    :param module_name: 
+    :param numcells: 
+    :param n_bypass_diodes: 
+    :param num_subcells: 
+    :param vmax: 
+    :param v_threshold: 
+    :param breakdown_voltage: 
+    :return: 
+    """
     # Definition of constants:
     q = 1.60217662e-19  # Electron Charge[Coulombs]
     k_boltzmann = 1.38064852e-23  # [J/K]
