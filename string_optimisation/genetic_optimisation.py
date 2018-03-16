@@ -12,8 +12,6 @@ from deap import tools
 
 
 
-
-
 def evaluation_function(individual, amodule_irradiation_np, amodule_area, amodule_efficiency,
                         center_points, voltage_mp, number_of_strings, hour_from=0, hour_to=8759,
                         roh=0.027, cabling_cross_section_area=4 ):
@@ -30,17 +28,14 @@ def evaluation_function(individual, amodule_irradiation_np, amodule_area, amodul
                                                       hour_to=hour_to, voltage_mp=voltage_mp, roh=roh,
                                                       cabling_cross_section_area=cabling_cross_section_area)
 
-
     return total_energy_yield/1000.0,
 
 
-
-
-def run_optimisation(cxpb=0.9, mutpb=0.5):
+def run_optimisation(cxpb=0.9, mutpb=0.5, number_of_generations=1000, population_size=500):
 
     random.seed(64)
 
-    pop = toolbox.population(n=500)
+    pop = toolbox.population(n=population_size)
     print "start of evolution"
 
     #Evaluate the entire population
@@ -52,7 +47,7 @@ def run_optimisation(cxpb=0.9, mutpb=0.5):
     generation_history =[]
 
     #begin evolution
-    while generation < 1000:
+    while generation < number_of_generations:
         generation+=1
         print ("Generation %i" % generation)
 
@@ -93,7 +88,7 @@ def run_optimisation(cxpb=0.9, mutpb=0.5):
         generation_history.append(generation_max)
 
 
-        if generation==1000:
+        if generation==number_of_generations:
             history = plt.figure(2)
             history.clf()
             plt.plot(generation_history)
@@ -129,9 +124,11 @@ if __name__ == "__main__":
     module_mpp_voltage = 29.5
     cable_cross_section = 4  # mm2
 
+    # GA Parameters
     cxpb = 0.5
     mutpb=0.4
-
+    number_of_generations = 1000
+    population_size = 500
 
     # Definitions of filepaths and import of data
     current_directory = os.path.dirname(__file__)
@@ -187,7 +184,7 @@ if __name__ == "__main__":
     #  Choose type of selection algorithm
     toolbox.register("select", tools.selTournament, tournsize=3)
 
-    run_optimisation(cxpb=cxpb, mutpb=mutpb)
+    run_optimisation(cxpb=cxpb, mutpb=mutpb, number_of_generations=number_of_generations, population_size=population_size)
 
 
     # cxpb = [0.01,0.2,0.4,0.6,0.8,0.99]
@@ -195,5 +192,5 @@ if __name__ == "__main__":
     #
     # for crossover_prob in cxpb:
     #     for mutation_pb in mutpb:
-    #         run_optimisation(cxpb=crossover_prob, mutpb=mutation_pb, number_of_strings=maximum_string_number)
+    #         run_optimisation(cxpb=crossover_prob, mutpb=mutation_pb, number_of_generations=number_of_generations)
 
