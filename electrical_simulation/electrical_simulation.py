@@ -125,7 +125,7 @@ if __name__ == '__main__':
     module_lookuptable = pd.read_pickle(module_lookup_table_path)
     module_lookuptable = module_lookuptable.astype('object')
 ############# Ends here
-    
+
     # Temperature -25 to 49 Celsius and Irrad vrom 0 to 1199 W/m2
     module_lookuptable = np.empty((75,1200), dtype="object")
     module_lookuptable[:] = np.nan
