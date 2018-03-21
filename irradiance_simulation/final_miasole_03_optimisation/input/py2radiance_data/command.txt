@@ -1,6 +1,0 @@
-epw2wea C:\daysim_first\final_miasole_03_optimisation\input\Zuerich_Kloten_2013.epw C:\daysim_first\final_miasole_03_optimisation\output\sen_dir\wea\Zuerich_Kloten_2013_60min.wea
-radfiles2daysim C:\daysim_first\final_miasole_03_optimisation\output\sen_dir\sen_dir.hea -g -m -d
-gen_dc C:\daysim_first\final_miasole_03_optimisation\output\sen_dir\tmp\sen_dirtemp.hea -dir
-gen_dc C:\daysim_first\final_miasole_03_optimisation\output\sen_dir\tmp\sen_dirtemp.hea -dif
-gen_dc C:\daysim_first\final_miasole_03_optimisation\output\sen_dir\tmp\sen_dirtemp.hea -paste
-ds_illum C:\daysim_first\final_miasole_03_optimisation\output\sen_dir\sen_dir.hea
