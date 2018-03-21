@@ -28,13 +28,15 @@ if __name__ == '__main__':
 
 
     ### ================== SET PARAMETERS HERE ===================== ###
-    
+
     weatherfile_path = os.path.join(project_path, 'input', 'Zuerich_Kloten_2013.epw')
-    albedo_ground = 0.2
     latitude = 47.36700
     longitude = 8.55000
-    a_r = 0.17  # is a module parameter that has to be set to calculate K
     time_zone_meridian = 15  # 15deg for CET, adapt for different time zones
+
+    albedo_ground = 0.2
+    a_r = 0.17  # is a module parameter that has to be set to calculate K
+
 
     # =============================== call daysim in normal mode =============================== #
 
