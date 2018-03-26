@@ -209,7 +209,6 @@ def calculate_mpp(iv_data):
     return mpp_total, i_mpp_total, v_mpp_total
 
 
-
 def series_parallel_with_dc_losses(modules_in_strings, strings_in_parallel , module_iv_folder, string_cable_lengths,
                                    parallel_cable_lengths, recalculate=False, cable_cross_section = 4,
                                    parallel_bus_cross_section=4, hoy_from=0, hoy_to=8759):
@@ -276,9 +275,6 @@ def series_parallel_with_dc_losses(modules_in_strings, strings_in_parallel , mod
 
     return energy_yield, dc_losses
 
-
-
-
 def interpolate_i_from_v(list_of_iv_curves, v):
     """
     This function interpolates the i value for a v value from iv-data
@@ -298,8 +294,6 @@ def interpolate_i_from_v(list_of_iv_curves, v):
             i[counter] = np.interp(v[counter],iv_curve[1], iv_curve[0])
             counter +=1
     return i
-
-
 
 
 def string_inverter(string_arrangement, module_iv_folder, recalculate=False, string_from=None, string_to=None,
@@ -324,7 +318,6 @@ def string_inverter(string_arrangement, module_iv_folder, recalculate=False, str
     total_yield = np.sum(string_yield)
 
     return total_yield
-
 
 def string_inverter_with_dc_losses(string_arrangement, module_iv_folder, cable_lengths, cable_cross_section=4,
                                    recalculate=False, string_from=None, string_to=None, hoy_from=0, hoy_to=8759):
@@ -352,7 +345,6 @@ def string_inverter_with_dc_losses(string_arrangement, module_iv_folder, cable_l
     total_yield = np.sum(string_yield)
     total_losses = np.sum(string_losses)
     return total_yield, total_losses
-
 
 def total_crosstied(parallel_tie_arrangement, module_iv_folder, recalculate=False, hoy_from=0, hoy_to=8759):
     if recalculate == True:
@@ -386,7 +378,6 @@ def total_crosstied_with_dc_losses(parallel_tie_arrangement, module_iv_folder, c
                                  hoy_from=hoy_from, hoy_to=hoy_to)
     return energy_yield, dc_losses
 
-
 def module_inverter(module_list, module_iv_folder, hoy_from=0, hoy_to=8759):
     modules = module_list.flatten()
     print modules
@@ -407,7 +398,7 @@ def module_inverter(module_list, module_iv_folder, hoy_from=0, hoy_to=8759):
 if __name__ == '__main__':
 
     current_directory = os.path.dirname(__file__)
-    # module_iv_folder = os.path.join(current_directory, 'results\standard')  # This is where the simulated IV curves are stored.
+    module_iv_folder = os.path.join(current_directory, 'results')  # This is where the simulated IV curves are stored.
 
     # module_iv_folder = r"F:\Paper\Module-simulations\orthogonal\temp25electrical\results"
     # module_iv_folder = r"F:\Paper\Module-simulations\orthogonal\electrical_simulation_unbypassed_T25\results"
@@ -415,57 +406,47 @@ if __name__ == '__main__':
     # module_iv_folder = r"F:\Paper\Module-simulations\orthogonal\electrical_simulation\results"
 
     # module_iv_folder = r"F:\Paper\Module-simulations\longi\normal"
-    module_iv_folder = r"F:\Paper\Module-simulations\longi\unbypassed"
+    # module_iv_folder = r"F:\Paper\Module-simulations\longi\unbypassed"
     # module_iv_folder = r"F:\Paper\Module-simulations\longi\25"
     # module_iv_folder = r"F:\Paper\Module-simulations\longi\25_ubp"
 
-    hoy_from = 5490
-    hoy_to = 5490
-
+    hoy_from = 0
+    hoy_to = 8759
     print "From " + str(hoy_from) + " to " + str(hoy_to)
 
-    # The string layout shows, how the strings are connected. Every sublist is a string.
-    # For now, all strings are connected in parallel
-
-    # string_arrangement = [[50, 52, 53, 54, 55, 56, 57, 60],
-    #                  [0, 1, 3, 26, 28, 44, 45, 47],
-    #                  [30, 32, 34, 36, 37, 39, 41, 43],
-    #                  [17, 19, 21, 23, 25, 27, 29, 31],
-    #                  [33, 35, 38, 40, 42, 62, 65, 67],
-    #                  [2, 4, 5, 8, 11, 46, 49],
-    #                  [68, 69, 70, 71, 72, 73, 74],
-    #                  [48, 51, 58, 59, 61, 64, 66],
-    #                  [6, 9, 18, 20, 22, 24, 63],
-    #                  [7, 10, 12, 13, 14, 15, 16]]
-
-    string_arrangement = np.arange(0,75)
+    string_arrangement = [[50, 52, 53, 54, 55, 56, 57, 60],
+                     [0, 1, 3, 26, 28, 44, 45, 47],
+                     [30, 32, 34, 36, 37, 39, 41, 43],
+                     [17, 19, 21, 23, 25, 27, 29, 31],
+                     [33, 35, 38, 40, 42, 62, 65, 67],
+                     [2, 4, 5, 8, 11, 46, 49],
+                     [68, 69, 70, 71, 72, 73, 74],
+                     [48, 51, 58, 59, 61, 64, 66],
+                     [6, 9, 18, 20, 22, 24, 63],
+                     [7, 10, 12, 13, 14, 15, 16]]
 
     connected_strings = [[0,1,2,3,4],[5,6,7,8,9]]
     cable_lengths = [24.26966766, 35.80156587, 21.5220064, 16.25342756, 43.74859659, 23.09968771, 20.14244473, 23.02407104, 36.1392263, 21.12497824]
     parallel_cable_lengths = [14,28]
+    cable_cross_section = 4  # mm2
+    dc_main_cable_cross_section = 4  # mm2
 
-    dc_main_cable_cross_section = 4
-    # string_arrangement = np.array([74])
-
-    # string_arrangement = np.arange(0,75)
     print string_arrangement
 
-    # print string_inverter(string_arrangement=string_arrangement, module_iv_folder=module_iv_folder, recalculate=True,
-    #                       hoy_from=0, hoy_to=8759)
-    #
-    # print string_inverter_with_dc_losses(string_arrangement=string_arrangement,  module_iv_folder=module_iv_folder,
-    #                                      recalculate=False, cable_lengths=cable_lengths, hoy_from=hoy_from,
-    #                                      hoy_to=hoy_to)
-    #
-    # print series_parallel_with_dc_losses(string_arrangement, strings_in_parallel=connected_strings,
-    #                                      module_iv_folder=module_iv_folder, string_cable_lengths=cable_lengths,
-    #                                      parallel_cable_lengths=parallel_cable_lengths,
-    #                                      parallel_bus_cross_section=dc_main_cable_cross_section, recalculate=False,
-    #                                      hoy_from=hoy_from, hoy_to=hoy_to)
+
+    print string_inverter_with_dc_losses(string_arrangement=string_arrangement,  module_iv_folder=module_iv_folder,
+                                         recalculate=False, cable_lengths=cable_lengths, hoy_from=hoy_from,
+                                         hoy_to=hoy_to, cable_cross_section=cable_cross_section)
 
 
-    # print total_crosstied(string_arrangement, module_iv_folder, recalculate=True, hoy_from=0, hoy_to=8759)
-    # print total_crosstied_with_dc_losses(string_arrangement,module_iv_folder, 15, recalculate=True, hoy_from=0,
-    #                                      hoy_to=8759)
+    print series_parallel_with_dc_losses(string_arrangement, strings_in_parallel=connected_strings,
+                                         module_iv_folder=module_iv_folder, string_cable_lengths=cable_lengths,
+                                         parallel_cable_lengths=parallel_cable_lengths,
+                                         parallel_bus_cross_section=dc_main_cable_cross_section, recalculate=False,
+                                         hoy_from=hoy_from, hoy_to=hoy_to, cable_cross_section=cable_cross_section)
 
+
+    string_arrangement = np.array(string_arrangement).flatten()
     print module_inverter(string_arrangement, module_iv_folder, hoy_from=hoy_from, hoy_to=hoy_to)
+
+
