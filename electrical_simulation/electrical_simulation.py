@@ -104,7 +104,7 @@ if __name__ == '__main__':
     module_name = 'MiaSole_Flex_03_120N'  # make sure the name is stated as in the database
     number_of_subcells = 4
     start_module = 0
-    end_module = 0
+    end_module = 14
 
     num_irrad_per_module = n_cells * number_of_subcells
     current_directory = os.path.dirname(__file__)
