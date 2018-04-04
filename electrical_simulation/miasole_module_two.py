@@ -110,29 +110,26 @@ def cells2substrings(cell_v_values_np, cell_i_values_np, cells_per_substring, nu
     :param max_i_module: this is the maximum expected current in the module. Setting a value close above Isc prevents
             having huge unnecessary interpolations when connecting the cells.
     :param min_i_module: zero can be used as long as cells are not connected in parallel to other cells
-    :return: returns nested lists of substring i and v values. Nested lists instead of numpy are used because the 
-                lengths of sublists are not equal
+    :return: returns numpy dtype object array with i and v values for each substring/submodule
     """
-    i_connected = []
-    v_connected = []
+    i_connected_np = np.empty(number_of_substrings, dtype=object)
+    v_connected_np = np.empty(number_of_substrings, dtype=object)
+
     for substring in range(number_of_substrings):  # iterate through all the substrings by number
 
         substring_v_values_np = cell_v_values_np[substring * cells_per_substring:(substring + 1) * cells_per_substring]
         substring_i_values_np = cell_i_values_np[substring * cells_per_substring:(substring + 1) * cells_per_substring]
-        i_connected_substring, v_connected_substring = connect.series_connect_multiple(substring_i_values_np,
+        i_connected_np[substring], v_connected_np[substring] = connect.series_connect_multiple(substring_i_values_np,
                                                                                        substring_v_values_np,
                                                                                        max_i_module, min_i_module)  # hier die 0 entfernen
-        i_connected.append(i_connected_substring)
-        v_connected.append(v_connected_substring)
-
-    return i_connected, v_connected
+    return i_connected_np, v_connected_np
 
 
-def bypass_diodes_on_substrings(substring_i_values, substring_v_values, number_of_substrings,
+def bypass_diodes_on_substrings(substring_i_values_np, substring_v_values_np, number_of_substrings,
                                 diode_saturation_current=1.0e-7, n_x_Vt=1.7e-2, numerical_diode_threshold=-1):
     """
-    :param substring_i_values: list of np.ndarrays
-    :param substring_v_values: list of np.ndarrays
+    :param substring_i_values: numpy array dtype object
+    :param substring_v_values: numpy array dtype object
     :param number_of_substrings: int, here equal to number of bypass diodes 
     :param diode_saturation_current: float, the saturation current of the modelled diode
     :param n_x_Vt: float, thermal voltage multiplied by the diode ideality factor
@@ -141,20 +138,20 @@ def bypass_diodes_on_substrings(substring_i_values, substring_v_values, number_o
     :return: returns the parallel addition of the bypass diodes and the substring currents
     """
 
-    diode_current = []  # List of np ndarrays for the current of each diode
+    diode_current = np.empty(number_of_substrings, dtype=object)  # List of np ndarrays for the current of each diode
 
     for substring in range(number_of_substrings):
         # Do diode calculations diode_current = 1.e-7*np.exp(-voltage_selected/1.7e-2) Where from??
         # diode_steps = np.empty(len(substring_v_values[substring]))
 
-        substring_v_values[substring][substring_v_values < numerical_diode_threshold] = numerical_diode_threshold
-        diode_steps = diode_saturation_current * np.exp(-substring_v_values[substring] / n_x_Vt)
-        diode_current.append(diode_steps)
+        substring_v_values_np[substring][substring_v_values_np[substring] < numerical_diode_threshold] = numerical_diode_threshold
+        diode_steps = diode_saturation_current * np.exp(-substring_v_values_np[substring] / n_x_Vt)
+        diode_current[substring]=diode_steps
 
     for substring in range(number_of_substrings):
-        substring_i_values[substring] = np.add(substring_i_values[substring], diode_current[substring])
+        substring_i_values_np[substring] = np.add(substring_i_values_np[substring], diode_current[substring])
 
-    return substring_i_values
+    return substring_i_values_np
 
 
 def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None, module_df=None,
@@ -249,7 +246,7 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None
     time_measurement = time.time()
 
     # Calculate basic substring characteristics
-    i_connected, v_connected = cells2substrings(cell_v_values_np, cell_i_values_np, cells_per_substring,
+    i_connected_np, v_connected_np = cells2substrings(cell_v_values_np, cell_i_values_np, cells_per_substring,
                                                 n_bypass_diodes, max_i_module, min_i_module)
 
     print "subcstrings done"
@@ -257,15 +254,18 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None
     time_measurement = time.time()
 
     # add bypass diode to sub_strings
-    i_connected = bypass_diodes_on_substrings(substring_i_values=i_connected, substring_v_values=v_connected,
-                                              number_of_substrings=n_bypass_diodes)
+
+    i_connected_np = bypass_diodes_on_substrings(substring_i_values_np=i_connected_np,
+                                                 substring_v_values_np=v_connected_np,
+                                                 number_of_substrings=n_bypass_diodes)
 
     print "diodes done"
     print time.time() - time_measurement
     time_measurement = time.time()
+
     # add sub_module voltages:
 
-    i_module, v_module = connect.series_connect_multiple(i_connected, v_connected, max_i_module, min_i_module)
+    i_module, v_module = connect.series_connect_multiple(i_connected_np, v_connected_np, max_i_module, min_i_module)
 
     i_module, v_module = connect.clean_curve([i_module, v_module], 0.2)  # Here remove hard coded numbers
     # Returns tow np.arrays i_module and v_module as well as the lookup table of the cells
