@@ -4,6 +4,7 @@ import numpy as np
 import miasole_module_two as ps
 import pickle
 import pvlib.pvsystem as pvsyst
+import time
 """
 In the dataframe always 72 consecutive columns are representative for one module. Thereof these 72 irradiation
 values are in the following order on the module:
@@ -62,7 +63,7 @@ def run_simulation(input_dataframe, num_cells_per_module, temperature_series, lo
             else:
                 i_module_sim, v_module_sim, lookup_table = ps.partial_shading(irradiation_on_module,
                                                                               temperature=temperature_series[row],
-                                                                              irrad_temp_lookup_df=lookup_table,
+                                                                              irrad_temp_lookup_np=lookup_table,
                                                                               module_df=module_df,
                                                                               module_name=module_name,
                                                                               numcells=num_cells_per_module,
@@ -103,38 +104,46 @@ if __name__ == '__main__':
     module_name = 'MiaSole_Flex_03_120N'  # make sure the name is stated as in the database
     number_of_subcells = 4
     start_module = 0
-    end_module = 14
+    end_module = 0
 
     num_irrad_per_module = n_cells * number_of_subcells
     current_directory = os.path.dirname(__file__)
     irradiation_results_path = os.path.join(current_directory, r'data\sen_dir.ill')
-    module_lookup_table_path = os.path.join(current_directory, r'data\lookup_mia.pkl')
+    module_lookup_table_path = os.path.join(current_directory, r'data\lookup_mia.npy')
     epw_path = os.path.join(current_directory, r'data\Zuerich_Kloten_2013.epw')
     module_temp_results = os.path.join(current_directory, 'results')
     database_path = os.path.join(current_directory, r'data\CEC_Modules.csv')
 
-######## AT THE MOMENT THIS IS NOT IN USE BECAUSE THE LOOKUP TABLE IS NOW IN NP
     # Import of data
     irradiation_complete_df = pd.read_csv(irradiation_results_path, sep=' ', header=None)
-    module_lookuptable = pd.read_pickle(module_lookup_table_path)
-    module_lookuptable = module_lookuptable.astype('object')
-############# Ends here
-
-    # Temperature -25 to 49 Celsius and Irrad vrom 0 to 1199 W/m2
-    module_lookuptable = np.empty((75,1200), dtype="object")
-    module_lookuptable[:] = np.nan
-
     weatherfile = pd.read_csv(epw_path, skiprows=8, header=None)
     temperature = weatherfile[6].tolist()
 
+######## AT THE MOMENT THIS IS NOT IN USE BECAUSE THE LOOKUP TABLE IS NOW IN NP
+    # module_lookuptable = pd.read_pickle(module_lookup_table_path)
+    # module_lookuptable = module_lookuptable.astype('object')
+############# Ends here
+
+    ### Check if lookuptable exists. If not, create it, otherwise load it
+    if os.path.exists(module_lookup_table_path):
+        module_lookuptable_np = np.load(module_lookup_table_path)
+        print "Lookup table has been loaded"
+    else:
+        # Ambient Temperature -25 to 49 Celsius and Irrad vrom 0 to 1199 W/m2
+        module_lookuptable_np = np.empty((75,1200), dtype="object")
+        module_lookuptable_np[:] = np.nan
+        print "New lookup table has been created"
+
+    start_time = time.time()
     # Calculation of all module IV-curves
-    module_lookuptable = run_simulation(irradiation_complete_df, n_cells, temperature,
-                                                        module_lookuptable, module_temp_results, start_module,
+    module_lookuptable_np = run_simulation(irradiation_complete_df, n_cells, temperature,
+                                                        module_lookuptable_np, module_temp_results, start_module,
                                                         end_module, database_path, module_name, bypass_diodes,
                                                         number_of_subcells, num_irrad_per_module)
 
-    with open(module_lookup_table_path, 'w') as f:
-        pickle.dump(module_lookuptable, f)
+    np.save(module_lookup_table_path, module_lookuptable_np)
+    print "finishing time"
+    print time.time()-start_time
 
 
 

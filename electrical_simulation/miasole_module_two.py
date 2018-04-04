@@ -45,6 +45,7 @@ def calculate_sub_cell_characteristics(irrad_on_subcells, evaluated_voltages, nu
     sub_cell_irrad_np = np.rint(irrad_on_subcells_np).astype(int)  # Take this out of the function
     t_ambient = int(t_ambient)  # Take this out of the function
 
+
     temperature_row = irrad_temp_lookup_np[t_ambient + 25]  # +25 because row on is at -25Celsius
 
     for position, irradiance_value in np.ndenumerate(sub_cell_irrad_np):
@@ -91,13 +92,27 @@ def sub_cells_2_cells(subcell_i_values, num_subcells):
     """
     :param subcell_i_values:  numpy array
     :param num_subcells: 
-    :return: 
+    :return: cell_i_values, numpy array
+    simple reshaping can be used, because the subcell v values all have the same basis
     """
     cell_i_values = subcell_i_values.reshape((-1, num_subcells, len(subcell_i_values[0]))).sum(axis=1)
     return cell_i_values
 
 
-def cells2substrings(cell_v_values_np, cell_i_values_np, cells_per_substring, number_of_substrings):
+def cells2substrings(cell_v_values_np, cell_i_values_np, cells_per_substring, number_of_substrings, max_i_module,
+                     min_i_module):
+    """
+    :param cell_v_values_np: numpy array of cell voltage values [[cell1values][cell2values] etc]
+    :param cell_i_values_np: numpy array of cell current values [[cell1values][cell2values] etc]
+    :param cells_per_substring: int, this value represents how many cells are in a substring = number of cells per 
+            bypass diode
+    :param number_of_substrings: int, here equal to number of bypass diodes 
+    :param max_i_module: this is the maximum expected current in the module. Setting a value close above Isc prevents
+            having huge unnecessary interpolations when connecting the cells.
+    :param min_i_module: zero can be used as long as cells are not connected in parallel to other cells
+    :return: returns nested lists of substring i and v values. Nested lists instead of numpy are used because the 
+                lengths of sublists are not equal
+    """
     i_connected = []
     v_connected = []
     for substring in range(number_of_substrings):  # iterate through all the substrings by number
@@ -106,7 +121,7 @@ def cells2substrings(cell_v_values_np, cell_i_values_np, cells_per_substring, nu
         substring_i_values_np = cell_i_values_np[substring * cells_per_substring:(substring + 1) * cells_per_substring]
         i_connected_substring, v_connected_substring = connect.series_connect_multiple(substring_i_values_np,
                                                                                        substring_v_values_np,
-                                                                                       0)  # hier die 0 entfernen
+                                                                                       max_i_module, min_i_module)  # hier die 0 entfernen
         i_connected.append(i_connected_substring)
         v_connected.append(v_connected_substring)
 
@@ -118,11 +133,12 @@ def bypass_diodes_on_substrings(substring_i_values, substring_v_values, number_o
     """
     :param substring_i_values: list of np.ndarrays
     :param substring_v_values: list of np.ndarrays
-    :param number_of_substrings: 
-    :param diode_saturation_current: 
-    :param n_x_Vt: 
-    :param numerical_diode_threshold: 
-    :return: 
+    :param number_of_substrings: int, here equal to number of bypass diodes 
+    :param diode_saturation_current: float, the saturation current of the modelled diode
+    :param n_x_Vt: float, thermal voltage multiplied by the diode ideality factor
+    :param numerical_diode_threshold: this is a value to speed up the calculation by not taking any values into account
+            below this voltage and thereby not causing any overflow errors.
+    :return: returns the parallel addition of the bypass diodes and the substring currents
     """
 
     diode_current = []  # List of np ndarrays for the current of each diode
@@ -141,7 +157,7 @@ def bypass_diodes_on_substrings(substring_i_values, substring_v_values, number_o
     return substring_i_values
 
 
-def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_df=None, module_df=None,
+def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None, module_df=None,
                     module_name='MiaSole_Flex_03_120N', numcells=56, n_bypass_diodes=28, num_subcells=4,
                     vmax=50.0, v_threshold=-1, breakdown_voltage=-6.10, ):
     """
@@ -168,6 +184,12 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_df=None
     irrad_noct = 800  # [W/m2]
     egap_ev = 1.12  # Band gap energy [eV]
     miller_exponent = 3  # This is set
+
+    #For now here, change to parameters:
+    max_i_module = 5  # [A]
+    min_i_module = 0  # [A], min value of interpolation in series connect
+
+    time_measurement = time.time()
 
     if n_bypass_diodes > 0:
         cells_per_substring = numcells / n_bypass_diodes
@@ -211,34 +233,50 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_df=None
     subcell_i_values, subcell_v_values = calculate_sub_cell_characteristics(irrad_on_subcells, evaluated_voltages,
                                                                             numcells, num_subcells,
                                                                             reverse_scaling_factor,
-                                                                            irrad_temp_lookup_df, t_ambient, irrad_noct,
+                                                                            irrad_temp_lookup_np, t_ambient, irrad_noct,
                                                                             t_noct, t_a_noct, alpha_short_current,
                                                                             module_params, egap_ev)
 
+    print "subcells done"
+    print time.time()-time_measurement
+    time_measurement = time.time()
     # Calculate cell characteristics
     cell_i_values_np = sub_cells_2_cells(subcell_i_values, num_subcells)
     cell_v_values_np = np.tile(subcell_voltage, (numcells, 1))
 
+    print "cells done"
+    print time.time() - time_measurement
+    time_measurement = time.time()
+
     # Calculate basic substring characteristics
     i_connected, v_connected = cells2substrings(cell_v_values_np, cell_i_values_np, cells_per_substring,
-                                                n_bypass_diodes)
+                                                n_bypass_diodes, max_i_module, min_i_module)
+
+    print "subcstrings done"
+    print time.time() - time_measurement
+    time_measurement = time.time()
 
     # add bypass diode to sub_strings
     i_connected = bypass_diodes_on_substrings(substring_i_values=i_connected, substring_v_values=v_connected,
                                               number_of_substrings=n_bypass_diodes)
 
-    print "here2"
+    print "diodes done"
+    print time.time() - time_measurement
+    time_measurement = time.time()
     # add sub_module voltages:
 
-    i_module, v_module = connect.series_connect_multiple(i_connected, v_connected, -7.5)
+    i_module, v_module = connect.series_connect_multiple(i_connected, v_connected, max_i_module, min_i_module)
 
     i_module, v_module = connect.clean_curve([i_module, v_module], 0.2)  # Here remove hard coded numbers
     # Returns tow np.arrays i_module and v_module as well as the lookup table of the cells
 
+    print "module done"
+    print time.time() - time_measurement
+
     print len(i_module)
     print len(v_module)
 
-    return i_module, v_module, irrad_temp_lookup_df
+    return i_module, v_module, irrad_temp_lookup_np
 
 
 
