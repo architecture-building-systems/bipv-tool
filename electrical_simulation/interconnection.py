@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 """
 This file contains functions that are able to interconnect IV-characteristics in series and parallel
@@ -11,8 +10,14 @@ functions, one for parallel and one for series.
 """
 
 
-def series_connect_multiple(multiple_i_values_np, multiple_v_values_np, minimum_voltage_of_return):
-
+def series_connect_multiple(multiple_i_values_np, multiple_v_values_np, upper_i_interpolation_threshold,
+                            lower_i_interpolation_threshold, interpolation_resolution_grid_i_values):
+    """
+    :param multiple_i_values_np: 
+    :param multiple_v_values_np: 
+    :param minimum_voltage_of_return:  
+    :return: 
+    """
 
     for index in range(len(multiple_i_values_np)):
         multiple_i_values_np[index] = np.flipud(multiple_i_values_np[index]) # The flip is required for the interpolation
@@ -20,6 +25,7 @@ def series_connect_multiple(multiple_i_values_np, multiple_v_values_np, minimum_
         minimum = maximum = 0
         sublist_min = multiple_i_values_np[index].min()
         sublist_max = multiple_i_values_np[index].max()
+
         if sublist_min < minimum:
             minimum = sublist_min
         else:
@@ -29,31 +35,37 @@ def series_connect_multiple(multiple_i_values_np, multiple_v_values_np, minimum_
         else:
             pass
 
-    if maximum>=10:
-        maximum=10  # Ampere
+    if maximum >= upper_i_interpolation_threshold:
+        maximum = upper_i_interpolation_threshold  # Ampere
     else:
         pass
 
-    if minimum <=-5:
-        minimum=-5
+    if minimum <= -lower_i_interpolation_threshold:
+        minimum = -lower_i_interpolation_threshold
     else:
         pass
 
-    i_lin_np = np.linspace(minimum, maximum, num= int((maximum-minimum)/0.01))
+
+    i_lin_np = np.linspace(minimum, maximum, num= int((maximum-minimum)/interpolation_resolution_grid_i_values))
     multiple_interp_v_values = np.empty(len(multiple_v_values_np), dtype=object)
+
+
 
     for index in range(len(multiple_v_values_np)):
         # Each index stands for one cell/submodule that is connected
         multiple_interp_v_values[index] = np.interp(i_lin_np, multiple_i_values_np[index], multiple_v_values_np[index])
     v_joined_flipped =  multiple_interp_v_values.sum(axis=0)
 
+
+
     # This last interpolation helps to distribute the datapoints also for nearly horizontal curves.
     v_joined = np.flipud(v_joined_flipped)
     i_lin_flipped = np.flipud(i_lin_np)
     voltage_min = v_joined.min()
     voltage_max = v_joined.max()
-    v_lin_np = np.linspace(voltage_min, voltage_max, (voltage_max-voltage_min)/0.01)
+    v_lin_np = np.linspace(voltage_min, voltage_max, (voltage_max-voltage_min)/interpolation_resolution_grid_i_values)
     i_joined = np.interp(v_lin_np, v_joined, i_lin_flipped)
+
 
     return i_joined, v_lin_np
 

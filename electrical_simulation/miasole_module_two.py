@@ -100,7 +100,7 @@ def sub_cells_2_cells(subcell_i_values, num_subcells):
 
 
 def cells2substrings(cell_v_values_np, cell_i_values_np, cells_per_substring, number_of_substrings, max_i_module,
-                     min_i_module):
+                     min_i_module, interpolation_resolution_submodules):
     """
     :param cell_v_values_np: numpy array of cell voltage values [[cell1values][cell2values] etc]
     :param cell_i_values_np: numpy array of cell current values [[cell1values][cell2values] etc]
@@ -121,7 +121,8 @@ def cells2substrings(cell_v_values_np, cell_i_values_np, cells_per_substring, nu
         substring_i_values_np = cell_i_values_np[substring * cells_per_substring:(substring + 1) * cells_per_substring]
         i_connected_np[substring], v_connected_np[substring] = connect.series_connect_multiple(substring_i_values_np,
                                                                                        substring_v_values_np,
-                                                                                       max_i_module, min_i_module)  # hier die 0 entfernen
+                                                                                       max_i_module, min_i_module,
+                                                                                    interpolation_resolution_submodules)
     return i_connected_np, v_connected_np
 
 
@@ -185,6 +186,8 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None
     #For now here, change to parameters:
     max_i_module = 5  # [A]
     min_i_module = 0  # [A], min value of interpolation in series connect
+    interpolation_resolution_submodules = 0.01  # [A]
+    interpolation_resolution_module = 0.05  # [A]
 
     time_measurement = time.time()
 
@@ -247,7 +250,8 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None
 
     # Calculate basic substring characteristics
     i_connected_np, v_connected_np = cells2substrings(cell_v_values_np, cell_i_values_np, cells_per_substring,
-                                                n_bypass_diodes, max_i_module, min_i_module)
+                                                n_bypass_diodes, max_i_module, min_i_module,
+                                                      interpolation_resolution_submodules)
 
     print "subcstrings done"
     print time.time() - time_measurement
@@ -265,7 +269,7 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None
 
     # add sub_module voltages:
 
-    i_module, v_module = connect.series_connect_multiple(i_connected_np, v_connected_np, max_i_module, min_i_module)
+    i_module, v_module = connect.series_connect_multiple(i_connected_np, v_connected_np, max_i_module, min_i_module, interpolation_resolution_module)
 
     i_module, v_module = connect.clean_curve([i_module, v_module], 0.2)  # Here remove hard coded numbers
     # Returns tow np.arrays i_module and v_module as well as the lookup table of the cells

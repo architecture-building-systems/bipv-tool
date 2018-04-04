@@ -119,10 +119,6 @@ if __name__ == '__main__':
     weatherfile = pd.read_csv(epw_path, skiprows=8, header=None)
     temperature = weatherfile[6].tolist()
 
-######## AT THE MOMENT THIS IS NOT IN USE BECAUSE THE LOOKUP TABLE IS NOW IN NP
-    # module_lookuptable = pd.read_pickle(module_lookup_table_path)
-    # module_lookuptable = module_lookuptable.astype('object')
-############# Ends here
 
     ### Check if lookuptable exists. If not, create it, otherwise load it
     if os.path.exists(module_lookup_table_path):
