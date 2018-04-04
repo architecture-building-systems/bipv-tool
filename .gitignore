@@ -106,6 +106,10 @@ irradiance_simulation/final_miasole_03_optimisation/output/
 irradiance_simulation/final_miasole_03_optimisation/results/
 string_optimisation/data/
 electrical_simulation/data/
+electrical_simulation/results
+string_optimisation/plot_histories.py
+string_optimisation/plot_values_from_excel.py
+
 
 
 
