@@ -28,15 +28,35 @@ in the miasole module the subcells have to be connected to cells first. So a new
 Always take into account that in a list the value 1 will be stored at 0.
  """
 
+def simulate_one_hour(irradiation_on_module, hour_temperature, lookup_table, module_df, module_name,
+                                                               num_cells_per_module, bypass_diodes,subcells):
+
+    if max(irradiation_on_module) == 0:  # Filter out the hours without irradiation
+
+        i_module_sim = np.asarray(0)
+        v_module_sim = np.asarray(0)
+
+
+    else:
+        i_module_sim, v_module_sim, lookup_table = ps.partial_shading(irradiation_on_module,
+                                                                      temperature=hour_temperature,
+                                                                      irrad_temp_lookup_np=lookup_table,
+                                                                      module_df=module_df,
+                                                                      module_name=module_name,
+                                                                      numcells=num_cells_per_module,
+                                                                      n_bypass_diodes=bypass_diodes,
+                                                                      num_subcells=subcells)
+
+    return i_module_sim, v_module_sim, lookup_table
+
 
 def run_simulation(input_dataframe, num_cells_per_module, temperature_series, lookup_table, mod_temp_path,
                    module_start, module_end, database_path, module_name, bypass_diodes, subcells, num_irrad_per_module):
 
 
-    modules_in_df = (len(input_dataframe.columns) - 4) / num_irrad_per_module
-
     if database_path==None:
         print "Please add the module database path"
+
 
     # Data is looked up in CEC module database
     module_df = pvsyst.retrieve_sam(path=database_path)
@@ -44,7 +64,7 @@ def run_simulation(input_dataframe, num_cells_per_module, temperature_series, lo
     # basically for every module there is a sublist for hourly values, for each hour there is a sublist with i and v
     # a specific i or v list can be called as follows: modules_iv[module][hour][i/v]
 
-    # for module in range(modules_in_df):
+
     for module in range(module_start, module_end + 1, 1):
         columns_from = module * num_irrad_per_module + 4  # The module data starts at column 4
         columns_to = columns_from + num_irrad_per_module - 1  # -1 because the column from already counts to the module
@@ -53,25 +73,12 @@ def run_simulation(input_dataframe, num_cells_per_module, temperature_series, lo
         hourly_iv_curves = []
         for row in range(len(module_df_temp.index)):
             irradiation_on_module = module_df_temp.loc[row, :].tolist()
-            # print irradiation_on_module
-            if max(irradiation_on_module) == 0:  # Filter out the hours without irradiation
+            i_module_sim, v_module_sim, lookup_table = simulate_one_hour(irradiation_on_module, temperature_series[row],
+                                                                         lookup_table, module_df, module_name,
+                                                                         num_cells_per_module, bypass_diodes,subcells)
 
-                i_module_sim = np.asarray(0)
-                v_module_sim = np.asarray(0)
-                hourly_iv_curves.append([i_module_sim, v_module_sim])
-                print "hour = " + str(row)
-            else:
-                i_module_sim, v_module_sim, lookup_table = ps.partial_shading(irradiation_on_module,
-                                                                              temperature=temperature_series[row],
-                                                                              irrad_temp_lookup_np=lookup_table,
-                                                                              module_df=module_df,
-                                                                              module_name=module_name,
-                                                                              numcells=num_cells_per_module,
-                                                                              n_bypass_diodes=bypass_diodes,
-                                                                              num_subcells=subcells)
-                hourly_iv_curves.append([i_module_sim, v_module_sim])
-
-                print "hour = " + str(row)
+            hourly_iv_curves.append([i_module_sim, v_module_sim])
+            print "hour = " + str(row)
 
         # The results for each module are saved in a file. This is required to lower the memory consumption
         # of the program when a high amount of modules is considered
@@ -104,7 +111,7 @@ if __name__ == '__main__':
     module_name = 'MiaSole_Flex_03_120N'  # make sure the name is stated as in the database
     number_of_subcells = 4
     start_module = 0
-    end_module = 14
+    end_module = 0
 
     num_irrad_per_module = n_cells * number_of_subcells
     current_directory = os.path.dirname(__file__)
