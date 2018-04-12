@@ -119,10 +119,10 @@ if __name__ == '__main__':
     start_module = 0
     end_module = 0
     cell_breakdown_voltage = -6.10
-    analysis_resolution_module = 0.01
+    analysis_resolution_module = 0.1
     interpolation_resolution_module = 0.02  # [V]
     interpolation_resolution_submodules = 0.01  # [A] could be chosen as interpolatiom_res_module/numcell
-    min_module_current = -0.5  # [A], min value of interpolation in series connect
+    min_module_current = -2  # [A], min value of interpolation in series connect
     final_module_iv_resolution=0.2  # [A] or [V] counts for both dimensions, this is for the final "curve cleaning"
 
     # -------- Filepaths --------- #
@@ -172,7 +172,13 @@ if __name__ == '__main__':
                      'number_of_bypass_diodes': bypass_diodes,
                      'max_module_current': 1.2*module_df[module_name]['I_sc_ref'],
                      "min_module_current": min_module_current,
-                     'max_module_voltage': 2*module_df[module_name]['V_oc_ref']}
+                     'max_module_voltage': 1.2*module_df[module_name]['V_oc_ref']}
+
+    # a_ref = modified diode ideality factor at STC
+    # I_L_ref = photocurrent at STC [A]
+    # I_o_ref = diode reverse saturation current [A]
+    # R_sh_ref = Shunt resistance at STC [Ohm]
+    # R_s = Series resistance at STC [Ohm]
 
 
 
@@ -182,8 +188,11 @@ if __name__ == '__main__':
     temperature_series = weatherfile[6].tolist()
 
     vmin_module= 0.99*cell_breakdown_voltage*module_params['number_of_cells']
-    evaluated_module_voltages = np.arange(vmin_module, module_params['max_module_voltage'], analysis_resolution_module)
 
+
+    # evaluated_module_voltages = np.arange(vmin_module, module_params['max_module_voltage'], analysis_resolution_module)
+
+    evaluated_module_voltages = np.arange(-338.8, 200, 0.1)
 
     ### Create lookup table
 

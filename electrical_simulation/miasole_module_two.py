@@ -64,21 +64,26 @@ def calculate_sub_cell_characteristics(irrad_on_subcells, evaluated_cell_voltage
             series_resistance = desoto_values[2]  # [Ohm]
             shunt_resistance = desoto_values[3]  # [Ohm]
             nnsvth = desoto_values[4]
+            print desoto_values
+            evaluated_module_voltages = evaluated_cell_voltages*56
 
             # Basic assumption here: Module IV-curve can be converted to a cell IV-curve by dividing the module voltage
             # by the number of cells further the subcell current is calculated by dividing currents by the number of
             # subcells.
-            evaluated_subcell_currents = pvsyst.i_from_v(shunt_resistance, series_resistance, nnsvth,
-                                                         evaluated_cell_voltages, sat_current, photocurrent)
+            evaluated_currents = pvsyst.i_from_v(shunt_resistance, series_resistance, nnsvth,
+                                                         evaluated_module_voltages, sat_current, photocurrent)
 
 
             subcell_v_values[position] = evaluated_cell_voltages  # Save for later use
 
             # calculate the subcell forward and reverse characteristc
-            subcell_current = np.multiply(evaluated_subcell_currents, reverse_scaling_factor) / num_subcells  # Numpy array
+            subcell_current = np.multiply(evaluated_currents, reverse_scaling_factor) / num_subcells  # Numpy array
 
             subcell_i_values[position] = subcell_current  # Save for later use
             irrad_temp_lookup_np[t_ambient + 25][irradiance_value] = [subcell_current, evaluated_cell_voltages]
+
+        # plt.plot(subcell_v_values[position],subcell_i_values[position])
+        # plt.show()
 
     return subcell_i_values, subcell_v_values
 
@@ -184,6 +189,8 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None
     n_bypass_diodes = module_params["number_of_bypass_diodes"]
     numcells = module_params["number_of_cells"]
     num_subcells = module_params["number_of_subcells"]
+    alpha_short_current = module_params['alpha_short_current']
+    t_noct = module_params['t_noct']
 
     interpolation_resolution_submodules = simulation_parameters["interpolation_resolution_submodules"]  # [A]
     interpolation_resolution_module = simulation_parameters["interpolation_resolution_module"]  # [A]
@@ -204,15 +211,6 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None
     # Rearrange irrad_on_subcells
     irrad_on_subcells = connect.rearrange_shading_pattern_miasole(irrad_on_subcells, num_subcells)
 
-    # a_ref = modified diode ideality factor at STC
-    # I_L_ref = photocurrent at STC [A]
-    # I_o_ref = diode reverse saturation current [A]
-    # R_sh_ref = Shunt resistance at STC [Ohm]
-    # R_s = Series resistance at STC [Ohm]
-
-    alpha_short_current = module_params['alpha_short_current']
-    t_noct = module_params['t_noct']
-
     evaluated_cell_voltages = evaluated_module_voltages / numcells  # Only divide by the number of cells
 
     reverse_scaling_factor = calculate_reverse_scaling_factor(evaluated_cell_voltages, breakdown_voltage, miller_exponent)
@@ -231,6 +229,7 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None
                                                                             alpha_short_current=alpha_short_current,
                                                                             module_params=module_params,
                                                                             egap_ev=egap_ev)
+
 
     # Calculate cell characteristics
     cell_i_values_np = sub_cells_2_cells(subcell_i_values, num_subcells)
