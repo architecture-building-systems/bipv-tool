@@ -28,133 +28,212 @@ in the miasole module the subcells have to be connected to cells first. So a new
 Always take into account that in a list the value 1 will be stored at 0.
  """
 
-def simulate_one_hour(irradiation_on_module, hour_temperature, lookup_table, module_df, module_name,
-                      num_cells_per_module, bypass_diodes,subcells, breakdown_voltage, evaluated_voltages):
+def simulate_one_hour(irradiation_on_module, hour_temperature, lookup_table, breakdown_voltage,
+                      evaluated_module_voltages, simulation_parameters, module_params):
 
     if max(irradiation_on_module) == 0:  # Filter out the hours without irradiation
 
         i_module_sim = np.asarray(0)
         v_module_sim = np.asarray(0)
 
-
     else:
         i_module_sim, v_module_sim, lookup_table = ps.partial_shading(irradiation_on_module,
                                                                       temperature=hour_temperature,
                                                                       irrad_temp_lookup_np=lookup_table,
-                                                                      module_df=module_df,
-                                                                      module_name=module_name,
-                                                                      numcells=num_cells_per_module,
-                                                                      n_bypass_diodes=bypass_diodes,
-                                                                      num_subcells=subcells,
                                                                       breakdown_voltage=breakdown_voltage,
-                                                                      evaluated_voltages=evaluated_voltages)
+                                                                      evaluated_module_voltages=evaluated_module_voltages,
+                                                                      simulation_parameters=simulation_parameters,
+                                                                      module_params=module_params)
 
     return i_module_sim, v_module_sim, lookup_table
 
 
-def run_simulation(input_dataframe, num_cells_per_module, temperature_series, lookup_table, mod_temp_path,
-                   module_start, module_end, database_path, module_name, bypass_diodes, subcells, num_irrad_per_module,
-                   cell_breakdown_voltage, evaluated_voltages):
+# def run_simulation(input_dataframe, temperature_series, lookup_table, mod_temp_path,
+#                    module_start, module_end, database_path, module_name, bypass_diodes, subcells,
+#                    cell_breakdown_voltage, evaluated_module_voltages, simulation_parameters):
+#
+#
+#     if database_path==None:
+#         print "Please add the module database path"
+#
+#
+#     # Data is looked up in CEC module database
+#     module_df = pvsyst.retrieve_sam(path=database_path)
+#     print module_df[module_name]
+#
+#     module_params = {'a_ref': module_df[module_name]['a_ref'], 'I_L_ref': module_df[module_name]['I_L_ref'],
+#                      'I_o_ref': module_df[module_name]['I_o_ref'], 'R_sh_ref': module_df[module_name]['R_sh_ref'],
+#                      'R_s': module_df[module_name]['R_s'], 'number_of_cells': module_df[module_name]['N_s'],
+#                      'alpha_short_current': module_df[module_name]['alpha_sc'],
+#                      't_noct': module_df[module_name]['T_NOCT'],
+#                      'max_module_current': module_df[module_name]['I_sc_ref']}
+#
+#     num_irrad_per_module = module_params['number_of_cells'] * number_of_subcells
+#
+#
+#
+#     for module in range(module_start, module_end + 1, 1):
+#         columns_from = module * num_irrad_per_module + 4  # The module data starts at column 4
+#         columns_to = columns_from + num_irrad_per_module - 1  # -1 because the column from already counts to the module
+#         module_df_temp = input_dataframe.loc[:, columns_from:columns_to]
+#
+#         hourly_iv_curves = []
+#         for row in range(len(module_df_temp.index)):
+#             irradiation_on_module = module_df_temp.loc[row, :].tolist()
+#             i_module_sim, v_module_sim, lookup_table = simulate_one_hour(irradiation_on_module=irradiation_on_module,
+#                                                                          hour_temperature=temperature_series[row],
+#                                                                          lookup_table=lookup_table,
+#                                                                          bypass_diodes=bypass_diodes,
+#                                                                          subcells=subcells,
+#                                                                          breakdown_voltage=cell_breakdown_voltage,
+#                                                                          evaluated_module_voltages=evaluated_module_voltages,
+#                                                                          simulation_parameters=simulation_parameters,
+#                                                                          module_params=module_params)
+#
+#             hourly_iv_curves.append([i_module_sim, v_module_sim])
+#             print "hour = " + str(row)
+#
+#         # The results for each module are saved in a file. This is required to lower the memory consumption
+#         # of the program when a high amount of modules is considered
+#         module_path = mod_temp_path + "\module" + str(module) + ".pkl"
+#
+#         with open(module_path, 'w') as f:
+#             pickle.dump(hourly_iv_curves, f)
+#
+#         print "module done = " + str(module)
 
 
-    if database_path==None:
-        print "Please add the module database path"
+
+if __name__ == '__main__':
+    ### ============= DEFINITION OF THE SYSTEM ====================== ###
+
+    # ------ Module Parameters ------ #
+    n_cells = 56
+    bypass_diodes = 28
+    module_name = 'MiaSole_Flex_03_120N'  # make sure the name is stated as in the database
+    number_of_subcells = 4
+
+    # ------ Simulation Parameters ------ #
+
+    # Check out which of these parameters can be taken directly from the database
+    start_module = 0
+    end_module = 0
+    cell_breakdown_voltage = -6.10
+    analysis_resolution_module = 0.01
+    interpolation_resolution_module = 0.02  # [V]
+    interpolation_resolution_submodules = 0.01  # [A] could be chosen as interpolatiom_res_module/numcell
+    min_module_current = -0.5  # [A], min value of interpolation in series connect
+    final_module_iv_resolution=0.2  # [A] or [V] counts for both dimensions, this is for the final "curve cleaning"
+
+    # -------- Filepaths --------- #
+    current_directory = os.path.dirname(__file__)
+    irradiation_results_path = os.path.join(current_directory, r'data\sen_dir.ill')
+    module_lookup_table_path = os.path.join(current_directory, r'data\lookup_mia.npy')
+    epw_path = os.path.join(current_directory, r'data\Zuerich_Kloten_2013.epw')
+    module_result_path = os.path.join(current_directory, 'results')
+    database_path = os.path.join(current_directory, r'data\CEC_Modules.csv')
+
+
+    ### ============= End of System definition ============= ###
+
+
+
+
+
+
+
+
+
+
+
+
+
+    simulation_parameters = {"start_module":start_module,
+                             "end_module":end_module,
+                             "cell_bd_voltage":cell_breakdown_voltage,
+                             "analysis_resolution":analysis_resolution_module,
+                             "interpolation_resolution_module":interpolation_resolution_module,
+                             "interpolation_resolution_submodules":interpolation_resolution_module,
+                             "final_module_iv_resolution":final_module_iv_resolution}
 
 
     # Data is looked up in CEC module database
     module_df = pvsyst.retrieve_sam(path=database_path)
-    # e.g. [module0[hour0[i[],v[]]], module1[hour1[i[],v[]]], ..., modulen[hour8759[i[],v[]]]
-    # basically for every module there is a sublist for hourly values, for each hour there is a sublist with i and v
-    # a specific i or v list can be called as follows: modules_iv[module][hour][i/v]
+    print module_df[module_name]
+    module_params = {'a_ref': module_df[module_name]['a_ref'],
+                     'I_L_ref': module_df[module_name]['I_L_ref'],
+                     'I_o_ref': module_df[module_name]['I_o_ref'],
+                     'R_sh_ref': module_df[module_name]['R_sh_ref'],
+                     'R_s': module_df[module_name]['R_s'],
+                     'number_of_cells': module_df[module_name]['N_s'],
+                     'number_of_subcells': number_of_subcells,
+                     'alpha_short_current': module_df[module_name]['alpha_sc'],
+                     't_noct': module_df[module_name]['T_NOCT'],
+                     'number_of_bypass_diodes': bypass_diodes,
+                     'max_module_current': 1.2*module_df[module_name]['I_sc_ref'],
+                     "min_module_current": min_module_current,
+                     'max_module_voltage': 2*module_df[module_name]['V_oc_ref']}
 
 
-    for module in range(module_start, module_end + 1, 1):
+
+    # Import of data
+    irradiation_complete_df = pd.read_csv(irradiation_results_path, sep=' ', header=None)
+    weatherfile = pd.read_csv(epw_path, skiprows=8, header=None)
+    temperature_series = weatherfile[6].tolist()
+
+    vmin_module= 0.99*cell_breakdown_voltage*module_params['number_of_cells']
+    evaluated_module_voltages = np.arange(vmin_module, module_params['max_module_voltage'], analysis_resolution_module)
+
+
+    ### Create lookup table
+
+    # Ambient Temperature -25 to 49 Celsius and Irrad vrom 0 to 1199 W/m2
+    module_lookuptable_np = np.empty((75,1200,2,len(evaluated_module_voltages)))
+    module_lookuptable_np[:] = np.nan
+    print "Lookup table has been created"
+
+    start_time = time.time()
+
+    # Calculation of all module IV-curves
+    if database_path==None:
+        print "Please add the module database path"
+
+
+
+
+    num_irrad_per_module = module_params['number_of_cells'] * module_params['number_of_subcells']
+
+
+
+    for module in range(start_module, end_module + 1, 1):
         columns_from = module * num_irrad_per_module + 4  # The module data starts at column 4
         columns_to = columns_from + num_irrad_per_module - 1  # -1 because the column from already counts to the module
-        module_df_temp = input_dataframe.loc[:, columns_from:columns_to]
+        module_df_temp = irradiation_complete_df.loc[:, columns_from:columns_to]
 
         hourly_iv_curves = []
         for row in range(len(module_df_temp.index)):
             irradiation_on_module = module_df_temp.loc[row, :].tolist()
             i_module_sim, v_module_sim, lookup_table = simulate_one_hour(irradiation_on_module=irradiation_on_module,
                                                                          hour_temperature=temperature_series[row],
-                                                                         lookup_table=lookup_table,
-                                                                         module_df=module_df, module_name=module_name,
-                                                                         num_cells_per_module=num_cells_per_module,
-                                                                         bypass_diodes=bypass_diodes,
-                                                                         subcells=subcells,
+                                                                         lookup_table=module_lookuptable_np,
                                                                          breakdown_voltage=cell_breakdown_voltage,
-                                                                         evaluated_voltages=evaluated_voltages)
+                                                                         evaluated_module_voltages=evaluated_module_voltages,
+                                                                         simulation_parameters=simulation_parameters,
+                                                                         module_params=module_params)
 
             hourly_iv_curves.append([i_module_sim, v_module_sim])
             print "hour = " + str(row)
 
         # The results for each module are saved in a file. This is required to lower the memory consumption
         # of the program when a high amount of modules is considered
-        module_path = mod_temp_path + "\module" + str(module) + ".pkl"
+        module_path = module_result_path + "\module" + str(module) + ".pkl"
 
         with open(module_path, 'w') as f:
             pickle.dump(hourly_iv_curves, f)
 
         print "module done = " + str(module)
 
-    return lookup_table
 
-
-
-if __name__ == '__main__':
-    # Set the following parameters according to the problem.
-    n_cells = 56
-    bypass_diodes = 28
-    module_name = 'MiaSole_Flex_03_120N'  # make sure the name is stated as in the database
-    number_of_subcells = 4
-    start_module = 0
-    end_module = 0
-    vmax_module = 50.0  # [V]
-    vmin_module = -6.05*56
-    cell_breakdown_voltage = -6.10
-    interpolation_resolution_module = 0.1  # [V]
-    evaluated_module_voltages = np.arange(vmin_module, vmax_module, interpolation_resolution_module)
-
-
-    num_irrad_per_module = n_cells * number_of_subcells
-    current_directory = os.path.dirname(__file__)
-    irradiation_results_path = os.path.join(current_directory, r'data\sen_dir.ill')
-    module_lookup_table_path = os.path.join(current_directory, r'data\lookup_mia.npy')
-    epw_path = os.path.join(current_directory, r'data\Zuerich_Kloten_2013.epw')
-    module_temp_results = os.path.join(current_directory, 'results')
-    database_path = os.path.join(current_directory, r'data\CEC_Modules.csv')
-
-    # Import of data
-    irradiation_complete_df = pd.read_csv(irradiation_results_path, sep=' ', header=None)
-    weatherfile = pd.read_csv(epw_path, skiprows=8, header=None)
-    temperature = weatherfile[6].tolist()
-
-
-    ### Check if lookuptable exists. If not, create it, otherwise load it
-    if os.path.exists(module_lookup_table_path):
-        module_lookuptable_np = np.load(module_lookup_table_path)
-        print "Lookup table has been loaded"
-    else:
-        # Ambient Temperature -25 to 49 Celsius and Irrad vrom 0 to 1199 W/m2
-        module_lookuptable_np = np.empty((75,1200,2,len(evaluated_module_voltages)))
-        module_lookuptable_np[:] = np.nan
-        print "New lookup table has been created"
-
-
-
-    start_time = time.time()
-    # Calculation of all module IV-curves
-    module_lookuptable_np = run_simulation(input_dataframe=irradiation_complete_df, num_cells_per_module=n_cells,
-                                           temperature_series=temperature, lookup_table=module_lookuptable_np,
-                                           mod_temp_path=module_temp_results, module_start=start_module,
-                                           module_end=end_module, database_path=database_path, module_name=module_name,
-                                           bypass_diodes=bypass_diodes, subcells=number_of_subcells,
-                                           num_irrad_per_module=num_irrad_per_module,
-                                           cell_breakdown_voltage=cell_breakdown_voltage,
-                                           evaluated_voltages=evaluated_module_voltages)
-
-    np.save(module_lookup_table_path, module_lookuptable_np)
     print "finishing time"
     print time.time()-start_time
 
