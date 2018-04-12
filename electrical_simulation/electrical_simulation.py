@@ -29,7 +29,7 @@ Always take into account that in a list the value 1 will be stored at 0.
  """
 
 def simulate_one_hour(irradiation_on_module, hour_temperature, lookup_table, module_df, module_name,
-                                                               num_cells_per_module, bypass_diodes,subcells):
+                      num_cells_per_module, bypass_diodes,subcells, breakdown_voltage, evaluated_voltages):
 
     if max(irradiation_on_module) == 0:  # Filter out the hours without irradiation
 
@@ -45,13 +45,16 @@ def simulate_one_hour(irradiation_on_module, hour_temperature, lookup_table, mod
                                                                       module_name=module_name,
                                                                       numcells=num_cells_per_module,
                                                                       n_bypass_diodes=bypass_diodes,
-                                                                      num_subcells=subcells)
+                                                                      num_subcells=subcells,
+                                                                      breakdown_voltage=breakdown_voltage,
+                                                                      evaluated_voltages=evaluated_voltages)
 
     return i_module_sim, v_module_sim, lookup_table
 
 
 def run_simulation(input_dataframe, num_cells_per_module, temperature_series, lookup_table, mod_temp_path,
-                   module_start, module_end, database_path, module_name, bypass_diodes, subcells, num_irrad_per_module):
+                   module_start, module_end, database_path, module_name, bypass_diodes, subcells, num_irrad_per_module,
+                   cell_breakdown_voltage, evaluated_voltages):
 
 
     if database_path==None:
@@ -73,9 +76,15 @@ def run_simulation(input_dataframe, num_cells_per_module, temperature_series, lo
         hourly_iv_curves = []
         for row in range(len(module_df_temp.index)):
             irradiation_on_module = module_df_temp.loc[row, :].tolist()
-            i_module_sim, v_module_sim, lookup_table = simulate_one_hour(irradiation_on_module, temperature_series[row],
-                                                                         lookup_table, module_df, module_name,
-                                                                         num_cells_per_module, bypass_diodes,subcells)
+            i_module_sim, v_module_sim, lookup_table = simulate_one_hour(irradiation_on_module=irradiation_on_module,
+                                                                         hour_temperature=temperature_series[row],
+                                                                         lookup_table=lookup_table,
+                                                                         module_df=module_df, module_name=module_name,
+                                                                         num_cells_per_module=num_cells_per_module,
+                                                                         bypass_diodes=bypass_diodes,
+                                                                         subcells=subcells,
+                                                                         breakdown_voltage=cell_breakdown_voltage,
+                                                                         evaluated_voltages=evaluated_voltages)
 
             hourly_iv_curves.append([i_module_sim, v_module_sim])
             print "hour = " + str(row)
@@ -92,17 +101,6 @@ def run_simulation(input_dataframe, num_cells_per_module, temperature_series, lo
     return lookup_table
 
 
-def results_to_csv(module_list, path):
-    """
-
-    :param module_list: 
-    :param path: 
-    :return: 
-    """
-    df = pd.DataFrame(module_list)
-    df = df.transpose()
-    df.to_csv(path, index_label='Hours')
-
 
 if __name__ == '__main__':
     # Set the following parameters according to the problem.
@@ -112,6 +110,12 @@ if __name__ == '__main__':
     number_of_subcells = 4
     start_module = 0
     end_module = 0
+    vmax_module = 50.0  # [V]
+    vmin_module = -6.05*56
+    cell_breakdown_voltage = -6.10
+    interpolation_resolution_module = 0.1  # [V]
+    evaluated_module_voltages = np.arange(vmin_module, vmax_module, interpolation_resolution_module)
+
 
     num_irrad_per_module = n_cells * number_of_subcells
     current_directory = os.path.dirname(__file__)
@@ -133,16 +137,22 @@ if __name__ == '__main__':
         print "Lookup table has been loaded"
     else:
         # Ambient Temperature -25 to 49 Celsius and Irrad vrom 0 to 1199 W/m2
-        module_lookuptable_np = np.empty((75,1200), dtype="object")
+        module_lookuptable_np = np.empty((75,1200,2,len(evaluated_module_voltages)))
         module_lookuptable_np[:] = np.nan
         print "New lookup table has been created"
 
+
+
     start_time = time.time()
     # Calculation of all module IV-curves
-    module_lookuptable_np = run_simulation(irradiation_complete_df, n_cells, temperature,
-                                                        module_lookuptable_np, module_temp_results, start_module,
-                                                        end_module, database_path, module_name, bypass_diodes,
-                                                        number_of_subcells, num_irrad_per_module)
+    module_lookuptable_np = run_simulation(input_dataframe=irradiation_complete_df, num_cells_per_module=n_cells,
+                                           temperature_series=temperature, lookup_table=module_lookuptable_np,
+                                           mod_temp_path=module_temp_results, module_start=start_module,
+                                           module_end=end_module, database_path=database_path, module_name=module_name,
+                                           bypass_diodes=bypass_diodes, subcells=number_of_subcells,
+                                           num_irrad_per_module=num_irrad_per_module,
+                                           cell_breakdown_voltage=cell_breakdown_voltage,
+                                           evaluated_voltages=evaluated_module_voltages)
 
     np.save(module_lookup_table_path, module_lookuptable_np)
     print "finishing time"

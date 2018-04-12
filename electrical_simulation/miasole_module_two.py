@@ -48,7 +48,7 @@ def calculate_sub_cell_characteristics(irrad_on_subcells, evaluated_voltages, nu
 
     for position, irradiance_value in np.ndenumerate(sub_cell_irrad_np):
 
-        if not (temperature_row[irradiance_value] != temperature_row[irradiance_value]):  # Checks for NaNs
+        if not (temperature_row[irradiance_value,0,0] != temperature_row[irradiance_value,0,0]):  # Checks for NaNs
             subcell_i_values[position] = temperature_row[irradiance_value][0]  # should collect a numpy array
             subcell_v_values[position] = temperature_row[irradiance_value][1]  # should collect a numpy array
 
@@ -153,7 +153,7 @@ def bypass_diodes_on_substrings(substring_i_values_np, substring_v_values_np, nu
 
 def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None, module_df=None,
                     module_name='MiaSole_Flex_03_120N', numcells=56, n_bypass_diodes=28, num_subcells=4,
-                    vmax=50.0, v_threshold=-1, breakdown_voltage=-6.10, ):
+                    breakdown_voltage=-6.10, evaluated_voltages=None):
     """
     This function returns the module IV curve of a module under any partial shading conditions or unequal irradiance.
     :param irrad_on_subcells: list, list of all irradiance values on the specific module (for one specific hour) make
@@ -171,6 +171,7 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None
     :param breakdown_voltage: 
     :return: 
     """
+
     # Definition of constants:
     t_a_noct = 20  # [a,NOCT]
     irrad_noct = 800  # [W/m2]
@@ -180,7 +181,7 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None
     #For now here, change to parameters:
     max_i_module = 5  # [A]
     min_i_module = 0  # [A], min value of interpolation in series connect
-    interpolation_resolution_cell = 0.01
+
     interpolation_resolution_submodules = 0.01  # [A]
     interpolation_resolution_module = 0.02  # [A]
 
@@ -208,34 +209,35 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None
                      'R_s': module_df[module_name]['R_s']}
     alpha_short_current = module_df[module_name]['alpha_sc']
     t_noct = module_df[module_name]['T_NOCT']
-    vmin = -6.05 * numcells  # [V] This value is very sensitive. Special attention has to be paid when working at
-    # low irradiation levels with low temperatures. A value which is too high will make the
-    # PVLIB i_from_v function to fail and will add NaNs into the array which will lead to
-    # problems in the connection of cells and modules
 
-    evaluated_voltages = np.arange(vmin, vmax, interpolation_resolution_cell)  # The step used here strongly influences the calculation time remove from hard code
+    evaluated_cell_voltages = evaluated_voltages / numcells  # Only divide by the number of cells
 
-    subcell_voltage = evaluated_voltages / numcells  # Only divide by the number of cells
-
-    reverse_scaling_factor = calculate_reverse_scaling_factor(subcell_voltage, breakdown_voltage, miller_exponent)
+    reverse_scaling_factor = calculate_reverse_scaling_factor(evaluated_cell_voltages, breakdown_voltage, miller_exponent)
 
     t_ambient = temperature  # degC, if measured, use data here
 
     # Calculate sub_cell characteristic
-    subcell_i_values, subcell_v_values = calculate_sub_cell_characteristics(irrad_on_subcells, evaluated_voltages,
-                                                                            numcells, num_subcells,
-                                                                            reverse_scaling_factor,
-                                                                            irrad_temp_lookup_np, t_ambient, irrad_noct,
-                                                                            t_noct, t_a_noct, alpha_short_current,
-                                                                            module_params, egap_ev)
+    subcell_i_values, subcell_v_values = calculate_sub_cell_characteristics(irrad_on_subcells=irrad_on_subcells,
+                                                                            evaluated_voltages=evaluated_cell_voltages,
+                                                                            numcells=numcells,
+                                                                            num_subcells=num_subcells,
+                                                                            reverse_scaling_factor=reverse_scaling_factor,
+                                                                            irrad_temp_lookup_np=irrad_temp_lookup_np,
+                                                                            t_ambient=t_ambient,
+                                                                            irrad_noct=irrad_noct,
+                                                                            t_noct=t_noct, t_a_noct=t_a_noct,
+                                                                            alpha_short_current=alpha_short_current,
+                                                                            module_params=module_params,
+                                                                            egap_ev=egap_ev)
 
     # Calculate cell characteristics
     cell_i_values_np = sub_cells_2_cells(subcell_i_values, num_subcells)
-    cell_v_values_np = np.tile(subcell_voltage, (numcells, 1))
+    cell_v_values_np = np.tile(evaluated_cell_voltages, (numcells, 1))
+
 
     # Calculate basic substring characteristics
     i_connected_np, v_connected_np = cells2substrings(cell_v_values_np, cell_i_values_np, cells_per_substring,
-                                                n_bypass_diodes, max_i_module, min_i_module,
+                                                      n_bypass_diodes, max_i_module, min_i_module,
                                                       interpolation_resolution_submodules)
 
     # add bypass diode to sub_strings
