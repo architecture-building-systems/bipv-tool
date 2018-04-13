@@ -5,6 +5,7 @@ import miasole_module_two as ps
 import pickle
 import pvlib.pvsystem as pvsyst
 import time
+import multiprocessing
 """
 In the dataframe always 72 consecutive columns are representative for one module. Thereof these 72 irradiation
 values are in the following order on the module:
@@ -27,6 +28,36 @@ in the miasole module the subcells have to be connected to cells first. So a new
 [1,45,99,..,177,2,46,...] has to be generated
 Always take into account that in a list the value 1 will be stored at 0.
  """
+
+def simulation_multiprocessing(module, num_irrad_per_module, irradiation_complete_df, module_result_path,
+                               temperature_series, module_lookuptable_np, cell_breakdown_voltage,
+                               evaluated_module_voltages, simulation_parameters, module_params):
+
+    columns_from = module * num_irrad_per_module + 4  # The module data starts at column 4
+    columns_to = columns_from + num_irrad_per_module - 1  # -1 because the column from already counts to the module
+    module_df_temp = irradiation_complete_df.loc[:, columns_from:columns_to]
+
+    hourly_iv_curves = []
+    for row in range(len(module_df_temp.index)):
+        irradiation_on_module = module_df_temp.loc[row, :].tolist()
+        i_module_sim, v_module_sim, lookup_table = simulate_one_hour(irradiation_on_module=irradiation_on_module,
+                                                                     hour_temperature=temperature_series[row],
+                                                                     lookup_table=module_lookuptable_np,
+                                                                     breakdown_voltage=cell_breakdown_voltage,
+                                                                     evaluated_module_voltages=evaluated_module_voltages,
+                                                                     simulation_parameters=simulation_parameters,
+                                                                     module_params=module_params)
+
+        hourly_iv_curves.append([i_module_sim, v_module_sim])
+        print "hour = " + str(row)
+
+    module_path = module_result_path + "\module" + str(module) + ".pkl"
+    with open(module_path, 'w') as f:
+        pickle.dump(hourly_iv_curves, f)
+
+    print "module done = " + str(module)
+
+
 
 def simulate_one_hour(irradiation_on_module, hour_temperature, lookup_table, breakdown_voltage,
                       evaluated_module_voltages, simulation_parameters, module_params):
@@ -119,9 +150,9 @@ if __name__ == '__main__':
 
     # Check out which of these parameters can be taken directly from the database
     start_module = 0
-    end_module = 0
+    end_module = 3
     analysis_resolution_module = 0.56  #
-    interpolation_resolution_module = 0.02  # [A]
+    interpolation_resolution_module = 0.10  # [A]
     interpolation_resolution_submodules = 0.02  # [A] could be chosen as interpolatiom_res_module/numcell
     final_module_iv_resolution=0.1  # [A] or [V] counts for both dimensions, this is for the final "curve cleaning"
 
@@ -214,36 +245,25 @@ if __name__ == '__main__':
 
     num_irrad_per_module = module_params['number_of_cells'] * module_params['number_of_subcells']
 
-
+    pool = multiprocessing.Pool(processes=2)
 
     for module in range(start_module, end_module + 1, 1):
 
-        columns_from = module * num_irrad_per_module + 4  # The module data starts at column 4
-        columns_to = columns_from + num_irrad_per_module - 1  # -1 because the column from already counts to the module
-        module_df_temp = irradiation_complete_df.loc[:, columns_from:columns_to]
+        # simulation_multiprocessing(module, num_irrad_per_module, irradiation_complete_df, module_result_path,
+        #                            temperature_series, module_lookuptable_np, cell_breakdown_voltage,
+        #                            evaluated_module_voltages, simulation_parameters, module_params)
+        #
+        pool.apply(simulation_multiprocessing,args=(module, num_irrad_per_module, irradiation_complete_df,
+                                                            module_result_path, temperature_series,
+                                                            module_lookuptable_np, cell_breakdown_voltage,
+                                                            evaluated_module_voltages, simulation_parameters,
+                                                            module_params))
 
-        hourly_iv_curves = []
-        for row in range(len(module_df_temp.index)):
-            irradiation_on_module = module_df_temp.loc[row, :].tolist()
-            i_module_sim, v_module_sim, lookup_table = simulate_one_hour(irradiation_on_module=irradiation_on_module,
-                                                                         hour_temperature=temperature_series[row],
-                                                                         lookup_table=module_lookuptable_np,
-                                                                         breakdown_voltage=cell_breakdown_voltage,
-                                                                         evaluated_module_voltages=evaluated_module_voltages,
-                                                                         simulation_parameters=simulation_parameters,
-                                                                         module_params=module_params)
+    pool.close()
+    pool.join()
 
-            hourly_iv_curves.append([i_module_sim, v_module_sim])
-            print "hour = " + str(row)
 
-        # The results for each module are saved in a file. This is required to lower the memory consumption
-        # of the program when a high amount of modules is considered
-        module_path = module_result_path + "\module" + str(module) + ".pkl"
 
-        with open(module_path, 'w') as f:
-            pickle.dump(hourly_iv_curves, f)
-
-        print "module done = " + str(module)
 
 
     print "finishing time"
