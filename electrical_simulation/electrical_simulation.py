@@ -105,25 +105,25 @@ def simulate_one_hour(irradiation_on_module, hour_temperature, lookup_table, bre
 
 
 if __name__ == '__main__':
+
+
     ### ============= DEFINITION OF THE SYSTEM ====================== ###
 
     # ------ Module Parameters ------ #
-    n_cells = 56
     bypass_diodes = 28
     module_name = 'MiaSole_Flex_03_120N'  # make sure the name is stated as in the database
     number_of_subcells = 4
+    cell_breakdown_voltage = -6.10  # [V] This value is usually not found in documentations.
 
     # ------ Simulation Parameters ------ #
 
     # Check out which of these parameters can be taken directly from the database
     start_module = 0
     end_module = 0
-    cell_breakdown_voltage = -6.10
-    analysis_resolution_module = 0.1
-    interpolation_resolution_module = 0.02  # [V]
-    interpolation_resolution_submodules = 0.01  # [A] could be chosen as interpolatiom_res_module/numcell
-    min_module_current = -2  # [A], min value of interpolation in series connect
-    final_module_iv_resolution=0.2  # [A] or [V] counts for both dimensions, this is for the final "curve cleaning"
+    analysis_resolution_module = 0.56  #
+    interpolation_resolution_module = 0.02  # [A]
+    interpolation_resolution_submodules = 0.02  # [A] could be chosen as interpolatiom_res_module/numcell
+    final_module_iv_resolution=0.1  # [A] or [V] counts for both dimensions, this is for the final "curve cleaning"
 
     # -------- Filepaths --------- #
     current_directory = os.path.dirname(__file__)
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     database_path = os.path.join(current_directory, r'data\CEC_Modules.csv')
 
 
-    ### ============= End of System definition ============= ###
+    ### =============================================================== ###
 
 
 
@@ -143,8 +143,12 @@ if __name__ == '__main__':
 
 
 
-
-
+    ### ===== Fixed Parameters ====== ###
+    # This value decides, in the interconnection of cells to submodules or submodules to modules, how far negative
+    # currents shall maximally be considered. A slightly negative value is chosen to make sure, the IV curve
+    # crosses the voltage axes.
+    min_module_current = -0.5  #[A]
+    ### ============================= ###
 
 
 
@@ -159,7 +163,6 @@ if __name__ == '__main__':
 
     # Data is looked up in CEC module database
     module_df = pvsyst.retrieve_sam(path=database_path)
-    print module_df[module_name]
     module_params = {'a_ref': module_df[module_name]['a_ref'],
                      'I_L_ref': module_df[module_name]['I_L_ref'],
                      'I_o_ref': module_df[module_name]['I_o_ref'],
@@ -172,7 +175,7 @@ if __name__ == '__main__':
                      'number_of_bypass_diodes': bypass_diodes,
                      'max_module_current': 1.2*module_df[module_name]['I_sc_ref'],
                      "min_module_current": min_module_current,
-                     'max_module_voltage': 1.2*module_df[module_name]['V_oc_ref']}
+                     'max_module_voltage': 1.35*module_df[module_name]['V_oc_ref']}
 
     # a_ref = modified diode ideality factor at STC
     # I_L_ref = photocurrent at STC [A]
@@ -190,9 +193,8 @@ if __name__ == '__main__':
     vmin_module= 0.99*cell_breakdown_voltage*module_params['number_of_cells']
 
 
-    # evaluated_module_voltages = np.arange(vmin_module, module_params['max_module_voltage'], analysis_resolution_module)
-
-    evaluated_module_voltages = np.arange(-338.8, 200, 0.1)
+    evaluated_module_voltages = np.arange(vmin_module, module_params['max_module_voltage'], analysis_resolution_module)
+    # evaluated_module_voltages = np.arange(-338.8, 200, 0.1)
 
     ### Create lookup table
 
@@ -215,6 +217,7 @@ if __name__ == '__main__':
 
 
     for module in range(start_module, end_module + 1, 1):
+
         columns_from = module * num_irrad_per_module + 4  # The module data starts at column 4
         columns_to = columns_from + num_irrad_per_module - 1  # -1 because the column from already counts to the module
         module_df_temp = irradiation_complete_df.loc[:, columns_from:columns_to]

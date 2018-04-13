@@ -40,8 +40,8 @@ def series_connect_multiple(multiple_i_values_np, multiple_v_values_np, upper_i_
     else:
         pass
 
-    if minimum <= -lower_i_interpolation_threshold:
-        minimum = -lower_i_interpolation_threshold
+    if minimum <= lower_i_interpolation_threshold:
+        minimum = lower_i_interpolation_threshold
     else:
         pass
 

@@ -64,7 +64,6 @@ def calculate_sub_cell_characteristics(irrad_on_subcells, evaluated_cell_voltage
             series_resistance = desoto_values[2]  # [Ohm]
             shunt_resistance = desoto_values[3]  # [Ohm]
             nnsvth = desoto_values[4]
-            print desoto_values
             evaluated_module_voltages = evaluated_cell_voltages*56
 
             # Basic assumption here: Module IV-curve can be converted to a cell IV-curve by dividing the module voltage
@@ -254,10 +253,10 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None
 
     i_module, v_module = connect.clean_curve([i_module, v_module], final_module_iv_resolution)
 
-    print len(i_module)
-    print len(v_module)
-    plt.plot(v_module, i_module)
-    plt.show()
+
+    # print len(v_module)
+    # plt.plot(v_module, i_module)
+    # plt.show()
 
     return i_module, v_module, irrad_temp_lookup_np
 
