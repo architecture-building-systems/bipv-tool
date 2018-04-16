@@ -156,6 +156,9 @@ if __name__ == '__main__':
     interpolation_resolution_submodules = 0.02  # [A] could be chosen as interpolatiom_res_module/numcell
     final_module_iv_resolution=0.1  # [A] or [V] counts for both dimensions, this is for the final "curve cleaning"
 
+    round_irradiance_to_ten = False # If this is set to True, the irradiance values will be rounded to the nearest ten
+                                    # value which saves memory and speeds up the calculation
+
     # -------- Filepaths --------- #
     current_directory = os.path.dirname(__file__)
     irradiation_results_path = os.path.join(current_directory, r'data\sen_dir.ill')
@@ -189,7 +192,8 @@ if __name__ == '__main__':
                              "analysis_resolution":analysis_resolution_module,
                              "interpolation_resolution_module":interpolation_resolution_module,
                              "interpolation_resolution_submodules":interpolation_resolution_module,
-                             "final_module_iv_resolution":final_module_iv_resolution}
+                             "final_module_iv_resolution":final_module_iv_resolution,
+                             "round_irradiance_to_ten":round_irradiance_to_ten}
 
 
     # Data is looked up in CEC module database
@@ -221,6 +225,13 @@ if __name__ == '__main__':
     weatherfile = pd.read_csv(epw_path, skiprows=8, header=None)
     temperature_series = weatherfile[6].tolist()
 
+    if round_irradiance_to_ten == True:
+        irradiation_complete_df = irradiation_complete_df.round(-1)
+    else:
+        pass
+    print irradiation_complete_df
+
+
     vmin_module= 0.99*cell_breakdown_voltage*module_params['number_of_cells']
 
 
@@ -228,10 +239,15 @@ if __name__ == '__main__':
     # evaluated_module_voltages = np.arange(-338.8, 200, 0.1)
 
     ### Create lookup table
+    if round_irradiance_to_ten == True:
+        module_lookuptable_np = np.empty((75, 120, 2, len(evaluated_module_voltages)))
+        module_lookuptable_np[:] = np.nan
 
-    # Ambient Temperature -25 to 49 Celsius and Irrad vrom 0 to 1199 W/m2
-    module_lookuptable_np = np.empty((75,1200,2,len(evaluated_module_voltages)))
-    module_lookuptable_np[:] = np.nan
+    else:
+        # Ambient Temperature -25 to 49 Celsius and Irrad vrom 0 to 1199 W/m2
+        module_lookuptable_np = np.empty((75,1200,2,len(evaluated_module_voltages)))
+        module_lookuptable_np[:] = np.nan
+
     print "Lookup table has been created"
 
     start_time = time.time()
@@ -253,7 +269,7 @@ if __name__ == '__main__':
         #                            temperature_series, module_lookuptable_np, cell_breakdown_voltage,
         #                            evaluated_module_voltages, simulation_parameters, module_params)
         #
-        pool.apply(simulation_multiprocessing,args=(module, num_irrad_per_module, irradiation_complete_df,
+        pool.apply_async(simulation_multiprocessing,args=(module, num_irrad_per_module, irradiation_complete_df,
                                                             module_result_path, temperature_series,
                                                             module_lookuptable_np, cell_breakdown_voltage,
                                                             evaluated_module_voltages, simulation_parameters,
