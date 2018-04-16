@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
     # Check out which of these parameters can be taken directly from the database
     start_module = 0
-    end_module = 14
+    end_module = 13
     analysis_resolution_module = 0.56  #
     interpolation_resolution_module = 0.12  # [A]
     interpolation_resolution_submodules = 0.03  # [A] could be chosen as interpolatiom_res_module/numcell
@@ -207,7 +207,7 @@ if __name__ == '__main__':
 
     num_irrad_per_module = module_params['number_of_cells'] * module_params['number_of_subcells']
 
-    pool = multiprocessing.Pool(processes=8)
+    pool = multiprocessing.Pool(processes=multiprocessing.cpu_count()-1)
 
     for module in range(start_module, end_module + 1, 1):
 
