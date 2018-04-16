@@ -215,7 +215,7 @@ if __name__ == '__main__':
         #                            temperature_series, module_lookuptable_np, cell_breakdown_voltage,
         #                            evaluated_module_voltages, simulation_parameters, module_params)
         #
-        pool.apply_async(simulation_multiprocessing,args=(module, num_irrad_per_module, irradiation_complete_df,
+        pool.apply_async(simulation_multiprocessing, args=(module, num_irrad_per_module, irradiation_complete_df,
                                                             module_result_path, temperature_series,
                                                             module_lookuptable_np, cell_breakdown_voltage,
                                                             evaluated_module_voltages, simulation_parameters,

@@ -17,7 +17,7 @@ def calculate_reverse_scaling_factor(voltages, breakdown_voltage, miller_exponen
 
 def calculate_sub_cell_characteristics(irrad_on_subcells, evaluated_cell_voltages, num_subcells,
                                        reverse_scaling_factor, irrad_temp_lookup_np, t_ambient, irrad_noct, t_noct,
-                                       t_a_noct, alpha_short_current, module_params, egap_ev):
+                                       t_a_noct, alpha_short_current, module_params, egap_ev, round_irrad_to_ten):
     """
 
     :param irrad_on_subcells: 
@@ -48,11 +48,13 @@ def calculate_sub_cell_characteristics(irrad_on_subcells, evaluated_cell_voltage
     for position, irradiance_value in np.ndenumerate(sub_cell_irrad_np):
 
         if round_irrad_to_ten == True:
-            irradiance_value=irradiance_value/10
+            irradiance_value_lookup=irradiance_value/10
+        else:
+            irradiance_value_lookup = irradiance_value
 
-        if not (temperature_row[irradiance_value,0,0] != temperature_row[irradiance_value,0,0]):  # Checks for NaNs
-            subcell_i_values[position] = temperature_row[irradiance_value][0]  # should collect a numpy array
-            subcell_v_values[position] = temperature_row[irradiance_value][1]  # should collect a numpy array
+        if not (temperature_row[irradiance_value_lookup,0,0] != temperature_row[irradiance_value_lookup,0,0]):  # Checks for NaNs
+            subcell_i_values[position] = temperature_row[irradiance_value_lookup][0]  # should collect a numpy array
+            subcell_v_values[position] = temperature_row[irradiance_value_lookup][1]  # should collect a numpy array
 
         else:
             if irradiance_value == 0:
@@ -82,7 +84,7 @@ def calculate_sub_cell_characteristics(irrad_on_subcells, evaluated_cell_voltage
             subcell_current = np.multiply(evaluated_currents, reverse_scaling_factor) / num_subcells  # Numpy array
 
             subcell_i_values[position] = subcell_current  # Save for later use
-            irrad_temp_lookup_np[t_ambient + 25][irradiance_value] = [subcell_current, evaluated_cell_voltages]
+            irrad_temp_lookup_np[t_ambient + 25][irradiance_value_lookup] = [subcell_current, evaluated_cell_voltages]
 
         # plt.plot(subcell_v_values[position],subcell_i_values[position])
         # plt.show()
@@ -197,6 +199,7 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None
     interpolation_resolution_submodules = simulation_parameters["interpolation_resolution_submodules"]  # [A]
     interpolation_resolution_module = simulation_parameters["interpolation_resolution_module"]  # [A]
     final_module_iv_resolution = simulation_parameters["final_module_iv_resolution"]  # [A] or [V] counts for both dimensions
+    round_irrad_to_ten = simulation_parameters["round_irradiance_to_ten"]
 
 
 
@@ -230,7 +233,8 @@ def partial_shading(irrad_on_subcells, temperature=25, irrad_temp_lookup_np=None
                                                                             t_noct=t_noct, t_a_noct=t_a_noct,
                                                                             alpha_short_current=alpha_short_current,
                                                                             module_params=module_params,
-                                                                            egap_ev=egap_ev)
+                                                                            egap_ev=egap_ev,
+                                                                            round_irrad_to_ten=round_irrad_to_ten)
 
 
     # Calculate cell characteristics
