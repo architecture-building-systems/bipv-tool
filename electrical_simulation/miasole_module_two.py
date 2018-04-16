@@ -47,7 +47,9 @@ def calculate_sub_cell_characteristics(irrad_on_subcells, evaluated_cell_voltage
 
     for position, irradiance_value in np.ndenumerate(sub_cell_irrad_np):
 
-        irradiance_value=irradiance_value
+        if round_irrad_to_ten == True:
+            irradiance_value=irradiance_value/10
+
         if not (temperature_row[irradiance_value,0,0] != temperature_row[irradiance_value,0,0]):  # Checks for NaNs
             subcell_i_values[position] = temperature_row[irradiance_value][0]  # should collect a numpy array
             subcell_v_values[position] = temperature_row[irradiance_value][1]  # should collect a numpy array

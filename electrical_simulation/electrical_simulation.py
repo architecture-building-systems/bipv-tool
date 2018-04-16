@@ -49,7 +49,7 @@ def simulation_multiprocessing(module, num_irrad_per_module, irradiation_complet
                                                                      module_params=module_params)
 
         hourly_iv_curves.append([i_module_sim, v_module_sim])
-        print "hour = " + str(row)
+        # print "hour = " + str(row)
 
     module_path = module_result_path + "\module" + str(module) + ".pkl"
     with open(module_path, 'w') as f:
@@ -79,62 +79,6 @@ def simulate_one_hour(irradiation_on_module, hour_temperature, lookup_table, bre
     return i_module_sim, v_module_sim, lookup_table
 
 
-# def run_simulation(input_dataframe, temperature_series, lookup_table, mod_temp_path,
-#                    module_start, module_end, database_path, module_name, bypass_diodes, subcells,
-#                    cell_breakdown_voltage, evaluated_module_voltages, simulation_parameters):
-#
-#
-#     if database_path==None:
-#         print "Please add the module database path"
-#
-#
-#     # Data is looked up in CEC module database
-#     module_df = pvsyst.retrieve_sam(path=database_path)
-#     print module_df[module_name]
-#
-#     module_params = {'a_ref': module_df[module_name]['a_ref'], 'I_L_ref': module_df[module_name]['I_L_ref'],
-#                      'I_o_ref': module_df[module_name]['I_o_ref'], 'R_sh_ref': module_df[module_name]['R_sh_ref'],
-#                      'R_s': module_df[module_name]['R_s'], 'number_of_cells': module_df[module_name]['N_s'],
-#                      'alpha_short_current': module_df[module_name]['alpha_sc'],
-#                      't_noct': module_df[module_name]['T_NOCT'],
-#                      'max_module_current': module_df[module_name]['I_sc_ref']}
-#
-#     num_irrad_per_module = module_params['number_of_cells'] * number_of_subcells
-#
-#
-#
-#     for module in range(module_start, module_end + 1, 1):
-#         columns_from = module * num_irrad_per_module + 4  # The module data starts at column 4
-#         columns_to = columns_from + num_irrad_per_module - 1  # -1 because the column from already counts to the module
-#         module_df_temp = input_dataframe.loc[:, columns_from:columns_to]
-#
-#         hourly_iv_curves = []
-#         for row in range(len(module_df_temp.index)):
-#             irradiation_on_module = module_df_temp.loc[row, :].tolist()
-#             i_module_sim, v_module_sim, lookup_table = simulate_one_hour(irradiation_on_module=irradiation_on_module,
-#                                                                          hour_temperature=temperature_series[row],
-#                                                                          lookup_table=lookup_table,
-#                                                                          bypass_diodes=bypass_diodes,
-#                                                                          subcells=subcells,
-#                                                                          breakdown_voltage=cell_breakdown_voltage,
-#                                                                          evaluated_module_voltages=evaluated_module_voltages,
-#                                                                          simulation_parameters=simulation_parameters,
-#                                                                          module_params=module_params)
-#
-#             hourly_iv_curves.append([i_module_sim, v_module_sim])
-#             print "hour = " + str(row)
-#
-#         # The results for each module are saved in a file. This is required to lower the memory consumption
-#         # of the program when a high amount of modules is considered
-#         module_path = mod_temp_path + "\module" + str(module) + ".pkl"
-#
-#         with open(module_path, 'w') as f:
-#             pickle.dump(hourly_iv_curves, f)
-#
-#         print "module done = " + str(module)
-
-
-
 if __name__ == '__main__':
 
 
@@ -150,13 +94,13 @@ if __name__ == '__main__':
 
     # Check out which of these parameters can be taken directly from the database
     start_module = 0
-    end_module = 3
+    end_module = 14
     analysis_resolution_module = 0.56  #
-    interpolation_resolution_module = 0.10  # [A]
-    interpolation_resolution_submodules = 0.02  # [A] could be chosen as interpolatiom_res_module/numcell
-    final_module_iv_resolution=0.1  # [A] or [V] counts for both dimensions, this is for the final "curve cleaning"
+    interpolation_resolution_module = 0.12  # [A]
+    interpolation_resolution_submodules = 0.03  # [A] could be chosen as interpolatiom_res_module/numcell
+    final_module_iv_resolution=0.2  # [A] or [V] counts for both dimensions, this is for the final "curve cleaning"
 
-    round_irradiance_to_ten = False # If this is set to True, the irradiance values will be rounded to the nearest ten
+    round_irradiance_to_ten = True # If this is set to True, the irradiance values will be rounded to the nearest ten
                                     # value which saves memory and speeds up the calculation
 
     # -------- Filepaths --------- #
@@ -221,7 +165,8 @@ if __name__ == '__main__':
 
 
     # Import of data
-    irradiation_complete_df = pd.read_csv(irradiation_results_path, sep=' ', header=None)
+    irradiation_complete_df = pd.read_csv(irradiation_results_path, sep=' ', header=None, dtype=np.float16)
+
     weatherfile = pd.read_csv(epw_path, skiprows=8, header=None)
     temperature_series = weatherfile[6].tolist()
 
@@ -229,7 +174,8 @@ if __name__ == '__main__':
         irradiation_complete_df = irradiation_complete_df.round(-1)
     else:
         pass
-    print irradiation_complete_df
+
+
 
 
     vmin_module= 0.99*cell_breakdown_voltage*module_params['number_of_cells']
@@ -261,7 +207,7 @@ if __name__ == '__main__':
 
     num_irrad_per_module = module_params['number_of_cells'] * module_params['number_of_subcells']
 
-    pool = multiprocessing.Pool(processes=2)
+    pool = multiprocessing.Pool(processes=8)
 
     for module in range(start_module, end_module + 1, 1):
 
